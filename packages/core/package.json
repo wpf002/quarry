@@ -1,0 +1,13 @@
+{
+  "name": "@quarry/core",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/*.test.ts"
+  },
+  "dependencies": { "@quarry/db": "workspace:*" },
+  "devDependencies": { "typescript": "^5.6.0", "tsx": "^4.19.0" }
+}

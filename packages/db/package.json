@@ -1,0 +1,14 @@
+{
+  "name": "@quarry/db",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "@prisma/client": "^5.20.0" },
+  "devDependencies": { "prisma": "^5.20.0", "typescript": "^5.6.0" }
+}

@@ -1,0 +1,192 @@
+// Quarry data model.
+// The tables that carry legal weight are Allowlist, ScanApproval, and AuditLog.
+// If those are wrong, nothing else matters; treat changes to them as reviewed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  HACKERONE
+  BUGCROWD
+  INTIGRITI
+  YESWEHACK
+  SELF_HOSTED
+}
+
+enum ScopeVerdict {
+  IN_SCOPE
+  OUT_OF_SCOPE
+  AMBIGUOUS
+}
+
+enum ReconSource {
+  CT_LOG
+  PASSIVE_DNS
+  PUBLIC_SOURCE
+  SECURITY_TXT
+  PROXIED_SELF
+  ACTIVE_SCAN
+}
+
+enum Severity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ApprovalState {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONSUMED
+}
+
+enum SubmissionState {
+  QUEUED
+  HELD_FOR_REVIEW
+  SUBMITTED
+  TRIAGED
+  RESOLVED
+  DUPLICATE
+  OUT_OF_SCOPE
+  INFORMATIVE
+}
+
+model Program {
+  id              String   @id @default(cuid())
+  platform        Platform
+  handle          String // e.g. "acme" on hackerone
+  name            String
+  policyRaw       String   @db.Text // captured policy text
+  // structured scope emitted by the LLM parser — advisory only.
+  // it never authorizes an active scan on its own; see Allowlist.
+  parsedScope     Json
+  parseConfidence Float // 0..1 from the parser
+  ambiguityFlags  String[] // human must clear these
+  maxBountyUsd    Int?
+  score           Float? // ProgramScorer output
+  active          Boolean  @default(false) // human flipped it on
+
+  assets    Asset[]
+  allowlist Allowlist[]
+  approvals ScanApproval[]
+  findings  Finding[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([platform, handle])
+}
+
+// Every asset the autonomous side discovers. Default verdict is OUT_OF_SCOPE.
+// Discovery may only write PASSIVE sources; ACTIVE_SCAN rows come from Infiltr
+// after a gate check.
+model Asset {
+  id        String       @id @default(cuid())
+  program   Program      @relation(fields: [programId], references: [id])
+  programId String
+  value     String // domain / host / url
+  verdict   ScopeVerdict @default(OUT_OF_SCOPE)
+  verdictBy String // "parser:v3" or "human:will"
+  source    ReconSource
+  meta      Json?
+  createdAt DateTime     @default(now())
+
+  @@unique([programId, value])
+}
+
+// The hard gate. A human builds this by hand from confirmed-in-scope assets.
+// Active scanning may touch a target ONLY if it matches a live Allowlist entry.
+// This is a whitelist, never a blacklist. No wildcards without an explicit flag.
+model Allowlist {
+  id            String  @id @default(cuid())
+  program       Program @relation(fields: [programId], references: [id])
+  programId     String
+  pattern       String // exact host/CIDR/url-prefix
+  allowWildcard Boolean @default(false)
+  addedBy       String // human identity, required
+  note          String?
+  active        Boolean @default(true)
+
+  createdAt DateTime       @default(now())
+  approvals ScanApproval[]
+
+  @@unique([programId, pattern])
+}
+
+// The per-program one-click authorization. This row is what makes an active
+// scan legal. It pins the exact allowlist version, the human, and an expiry.
+// recon-active refuses to run without a matching APPROVED, unexpired row.
+model ScanApproval {
+  id            String        @id @default(cuid())
+  program       Program       @relation(fields: [programId], references: [id])
+  programId     String
+  allowlist     Allowlist     @relation(fields: [allowlistId], references: [id])
+  allowlistId   String
+  state         ApprovalState @default(PENDING)
+  approvedBy    String? // set on APPROVED
+  approvedAt    DateTime?
+  expiresAt     DateTime?
+  scanProfile   Json // which tiers/tools permitted
+  consumedRunId String? // links to the run it authorized
+  createdAt     DateTime      @default(now())
+}
+
+model Finding {
+  id             String   @id @default(cuid())
+  program        Program  @relation(fields: [programId], references: [id])
+  programId      String
+  title          String
+  vulnClass      String
+  severity       Severity
+  confidence     Float // triage true-positive %
+  dupRisk        Float // 0..1 from dup assessor
+  evidence       Json // request/response, artifacts
+  chainOf        String[] // component finding ids
+  humanConfirmed Boolean  @default(false)
+  report         Report?
+  createdAt      DateTime @default(now())
+}
+
+model Report {
+  id         String      @id @default(cuid())
+  finding    Finding     @relation(fields: [findingId], references: [id])
+  findingId  String      @unique
+  markdown   String      @db.Text
+  submission Submission?
+  createdAt  DateTime    @default(now())
+}
+
+model Submission {
+  id          String          @id @default(cuid())
+  report      Report          @relation(fields: [reportId], references: [id])
+  reportId    String          @unique
+  state       SubmissionState @default(QUEUED)
+  platformRef String? // id returned by platform
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+// Append-only trail. Every scope verdict and every active action lands here.
+// Never updated, never deleted in normal operation.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String // "parser:v3" | "human:will" | "infiltr"
+  action    String // "scope.verdict" | "scan.run" | "approval.grant"
+  programId String?
+  target    String?
+  detail    Json
+  createdAt DateTime @default(now())
+
+  @@index([programId])
+  @@index([createdAt])
+}
