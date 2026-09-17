@@ -89,16 +89,19 @@ async function persistActiveResult(
   programId: string,
   result: InfiltrResult,
 ): Promise<void> {
-  for (const value of result.assets) {
-    await prisma.asset.upsert({
-      where: { programId_value: { programId, value } },
-      create: { programId, value, verdict: 'OUT_OF_SCOPE', verdictBy: 'infiltr', source: 'ACTIVE_SCAN' },
-      update: { source: 'ACTIVE_SCAN' },
+  // Bulk insert — one round-trip each, not one per row. A scan can return
+  // thousands of findings; per-row inserts were the main source of slowness.
+  if (result.assets.length > 0) {
+    await prisma.asset.createMany({
+      data: result.assets.map((value) => ({
+        programId, value, verdict: 'OUT_OF_SCOPE' as const, verdictBy: 'infiltr', source: 'ACTIVE_SCAN' as const,
+      })),
+      skipDuplicates: true,
     });
   }
-  for (const f of result.findings) {
-    await prisma.finding.create({
-      data: {
+  if (result.findings.length > 0) {
+    await prisma.finding.createMany({
+      data: result.findings.map((f) => ({
         programId,
         title: f.title,
         vulnClass: f.vulnClass,
@@ -108,7 +111,7 @@ async function persistActiveResult(
         dupRisk: 0.5,
         evidence: f.evidence as object,
         target: result.target,
-      },
+      })),
     });
   }
   await audit({
