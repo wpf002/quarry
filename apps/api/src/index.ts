@@ -7,7 +7,7 @@ import {
   evaluate as evaluateMatch,
 } from '@quarry/core';
 import { recordOutcome, recomputeProgramScore } from '@quarry/feedback';
-import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signEnvelope, pauseEnvelope, EnvelopeRefusal } from '@quarry/autonomy';
+import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signEnvelope, pauseEnvelope, EnvelopeRefusal, liveVerify } from '@quarry/autonomy';
 
 const app = Fastify({ logger: true });
 
@@ -190,14 +190,21 @@ app.post('/programs/:id/autosubmit-policy', async (req, reply) => {
 // --- L2: ownership verification + standing authorizations -----------------
 app.post('/allowlist/:id/verify-ownership', async (req, reply) => {
   const { id } = req.params as { id: string };
-  const { by, method } = (req.body ?? {}) as { by?: string; method?: string };
+  const { by, force } = (req.body ?? {}) as { by?: string; force?: boolean };
   if (!by) return reply.code(400).send({ error: 'by required' });
-  const entry = await prisma.allowlist.update({
-    where: { id },
-    data: { ownershipVerified: true, ownershipMethod: method ?? 'HUMAN_CONFIRMED' },
-  });
-  await audit({ actor: `human:${by}`, action: 'ownership.verify', programId: entry.programId, target: entry.pattern, detail: { allowlistId: id, method: entry.ownershipMethod } });
-  return { ok: true };
+  const entry = await prisma.allowlist.findUnique({ where: { id } });
+  if (!entry) return reply.code(404).send({ error: 'not found' });
+
+  // Authentic check: live TLS certificate SAN + DNS resolution.
+  const result = await liveVerify(entry.pattern);
+  if (!result.verified && !force) {
+    await audit({ actor: `human:${by}`, action: 'ownership.verify.fail', programId: entry.programId, target: entry.pattern, detail: { reason: result.reason, evidence: result.evidence } });
+    return reply.code(422).send({ ok: false, error: result.reason, evidence: result.evidence });
+  }
+  const method = result.verified ? result.method : 'HUMAN_OVERRIDE';
+  await prisma.allowlist.update({ where: { id }, data: { ownershipVerified: true, ownershipMethod: method } });
+  await audit({ actor: `human:${by}`, action: 'ownership.verify', programId: entry.programId, target: entry.pattern, detail: { allowlistId: id, method, verified: result.verified, evidence: result.evidence } });
+  return { ok: true, method, evidence: result.evidence };
 });
 
 app.post('/programs/:id/preauth', async (req, reply) => {

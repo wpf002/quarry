@@ -3,23 +3,26 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Demo program with REAL, live-verifiable hosts so the live ownership check
+  // (TLS cert SAN + DNS) passes against authentic data. Policy text is
+  // illustrative, not a real program's scope.
   const acme = await prisma.program.upsert({
-    where: { platform_handle: { platform: 'HACKERONE', handle: 'acme' } },
+    where: { platform_handle: { platform: 'HACKERONE', handle: 'example-demo' } },
     update: {},
     create: {
       platform: 'HACKERONE',
-      handle: 'acme',
-      name: 'Acme Corp',
+      handle: 'example-demo',
+      name: 'Example Corp (demo)',
       policyRaw:
-        'In scope: *.acme.com, api.acme.com. Out of scope: blog.acme.com. ' +
-        'No DoS, no social engineering. Rewards: Critical $5000, High $2000.',
+        'In scope: example.com, www.example.com. Out of scope: internal.example.com. ' +
+        'No DoS, no social engineering. Rewards: Critical $5000, High $2000. (Illustrative demo policy.)',
       parsedScope: {
-        inScope: ['*.acme.com', 'api.acme.com'],
-        outOfScope: ['blog.acme.com'],
+        inScope: ['example.com', 'www.example.com'],
+        outOfScope: ['internal.example.com'],
         prohibited: ['DoS', 'social engineering'],
       },
       parseConfidence: 0.86,
-      ambiguityFlags: ['wildcard *.acme.com needs human confirmation'],
+      ambiguityFlags: [],
       maxBountyUsd: 5000,
       score: 0.72,
       active: false,
@@ -27,17 +30,17 @@ async function main() {
   });
 
   await prisma.program.upsert({
-    where: { platform_handle: { platform: 'BUGCROWD', handle: 'globex' } },
+    where: { platform_handle: { platform: 'BUGCROWD', handle: 'iana-demo' } },
     update: {},
     create: {
       platform: 'BUGCROWD',
-      handle: 'globex',
-      name: 'Globex',
+      handle: 'iana-demo',
+      name: 'IANA reserved (demo)',
       policyRaw:
-        'Scope: app.globex.io, 203.0.113.0/24. Prohibited: automated scanning ' +
-        'without approval. Rewards up to $3000.',
+        'In scope: iana.org, www.iana.org. Prohibited: automated scanning ' +
+        'without approval. Rewards up to $3000. (Illustrative demo policy.)',
       parsedScope: {
-        inScope: ['app.globex.io', '203.0.113.0/24'],
+        inScope: ['iana.org', 'www.iana.org'],
         outOfScope: [],
         prohibited: ['automated scanning without approval'],
       },

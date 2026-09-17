@@ -131,7 +131,7 @@ export async function liveEnvelopes(now: Date) {
 // shared executors run scans + submits (which act on the provisioned preauths /
 // policies). Each target still passes the per-target gate + kill switch.
 export async function runAutopilot(
-  deps: { now?: Date } = {},
+  deps: { now?: Date; certFetcher?: import('./provenance.js').CertFetcher } = {},
 ): Promise<Array<{ envelopeId: string; paused?: string }>> {
   const now = deps.now ?? new Date();
   const out: Array<{ envelopeId: string; paused?: string }> = [];
@@ -165,7 +165,7 @@ export async function runAutopilot(
   }
 
   // Shared executors act on whatever authorizations remain live.
-  await runAutoScans();
+  await runAutoScans({ certFetcher: deps.certFetcher });
   await runAutoSubmit({ now });
   await audit({ actor: 'autopilot', action: 'autopilot.run', detail: { envelopes: out.length } });
   return out;
