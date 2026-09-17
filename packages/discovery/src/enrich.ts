@@ -1,6 +1,6 @@
 import { prisma } from '@quarry/db';
 import { audit } from '@quarry/core';
-import { scoreProgram } from './scorer.js';
+import { scoreEarnability, countScannableAssets } from './scorer.js';
 
 // Per-program enrichment: fetch the REAL scope from each platform's detail
 // endpoint and turn it into structured in/out-of-scope + a score. This is what
@@ -135,17 +135,23 @@ export async function enrichAndPersist(
         preferredVulnTypes: [],
         unusualRules: [],
       };
-      const score = scoreProgram({
+      const scannable = countScannableAssets(scope.inScope);
+      const score = scoreEarnability({
+        offersBounty: p.offersBounty,
+        isOpen: (p.platformStatus ?? 'open') === 'open',
         maxBountyUsd: p.maxBountyUsd ?? undefined,
-        inScopeCount: scope.inScope.length,
-        parseConfidence: 0.9,
-        ambiguityCount: scope.wildcardFlags.length,
-        hasWideScope: scope.wildcardFlags.length > 0,
+        scannableAssets: scannable,
+        programAgeDays: p.startedAt
+          ? Math.floor((Date.now() - p.startedAt.getTime()) / 86_400_000)
+          : undefined,
       });
       await prisma.program.update({
         where: { id: p.id },
         data: {
-          policyRaw: scope.policyRaw,
+          // keep the platform's real policy text when we have it; only fall
+          // back to the synthesized scope summary when the program had none.
+          policyRaw: p.policyRaw?.trim() ? p.policyRaw : scope.policyRaw,
+          scannableAssets: scannable,
           parsedScope: parsedScope as object,
           parseConfidence: 0.9,
           ambiguityFlags: scope.wildcardFlags,
@@ -173,4 +179,37 @@ export async function enrichAndPersist(
     .slice(0, 5)
     .map(([m, n]) => `${m} x${n}`);
   return { enriched, skipped, errors, errorSample };
+}
+
+/**
+ * Recompute scannableAssets + earnability score for every program from what is
+ * already stored. Cheap, no network: run after a schema or scoring change.
+ */
+export async function rescoreAll(): Promise<{ rescored: number }> {
+  const programs = await prisma.program.findMany({
+    select: {
+      id: true, parsedScope: true, offersBounty: true, platformStatus: true,
+      maxBountyUsd: true, startedAt: true,
+    },
+  });
+  let rescored = 0;
+  for (const p of programs) {
+    const scope = (p.parsedScope ?? {}) as { inScope?: string[] };
+    const scannable = countScannableAssets(scope.inScope ?? []);
+    const score = scoreEarnability({
+      offersBounty: p.offersBounty,
+      isOpen: (p.platformStatus ?? 'open') === 'open',
+      maxBountyUsd: p.maxBountyUsd ?? undefined,
+      scannableAssets: scannable,
+      programAgeDays: p.startedAt
+        ? Math.floor((Date.now() - p.startedAt.getTime()) / 86_400_000)
+        : undefined,
+    });
+    await prisma.program.update({
+      where: { id: p.id },
+      data: { scannableAssets: scannable, score: score.total },
+    });
+    rescored++;
+  }
+  return { rescored };
 }

@@ -63,19 +63,24 @@ enum SubmissionState {
 }
 
 model Program {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   platform        Platform
   handle          String // e.g. "acme" on hackerone
   name            String
-  policyRaw       String   @db.Text // captured policy text
+  policyRaw       String    @db.Text // captured policy text
   // structured scope emitted by the LLM parser — advisory only.
   // it never authorizes an active scan on its own; see Allowlist.
   parsedScope     Json
   parseConfidence Float // 0..1 from the parser
   ambiguityFlags  String[] // human must clear these
-  maxBountyUsd    Int?
-  score           Float? // ProgramScorer output
-  active          Boolean  @default(false) // human flipped it on
+  maxBountyUsd    Int? // real amount where the platform gives one
+  bountyCurrency  String? // e.g. usd, eur
+  offersBounty    Boolean   @default(false) // false = VDP (reputation only)
+  platformStatus  String? // open | paused | closed, as the platform reports it
+  startedAt       DateTime? // program launch; proxy for how picked-over it is
+  scannableAssets Int       @default(0) // assets Quarry can actually test
+  score           Float? // earnability: odds Quarry lands a PAID bug
+  active          Boolean   @default(false) // human flipped it on
 
   assets     Asset[]
   allowlist  Allowlist[]

@@ -1,20 +1,38 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { scoreProgram } from './scorer.js';
+import { scoreEarnability, countScannableAssets } from './scorer.js';
 import { mapHackerOne, mapBugcrowd, type PlatformConnector } from './connectors.js';
 import { discoverPrograms } from './discovery.js';
 
-test('scorer: higher reward and clarity rank higher', () => {
-  const weak = scoreProgram({ maxBountyUsd: 100, inScopeCount: 1, parseConfidence: 0.4, ambiguityCount: 2, hasWideScope: true });
-  const strong = scoreProgram({ maxBountyUsd: 5000, inScopeCount: 6, parseConfidence: 0.9, ambiguityCount: 0, hasWideScope: false });
-  assert.ok(strong.total > weak.total);
-  assert.ok(strong.total <= 1 && weak.total >= 0);
+test('earnability: closed programs score zero', () => {
+  const s = scoreEarnability({ offersBounty: true, isOpen: false, maxBountyUsd: 5000, scannableAssets: 10 });
+  assert.equal(s.total, 0);
+  assert.match(s.reason, /closed/);
 });
 
-test('scorer: ambiguity penalizes policy clarity', () => {
-  const clean = scoreProgram({ inScopeCount: 3, parseConfidence: 0.8, ambiguityCount: 0, hasWideScope: false });
-  const messy = scoreProgram({ inScopeCount: 3, parseConfidence: 0.8, ambiguityCount: 4, hasWideScope: false });
-  assert.ok(clean.policyClarity > messy.policyClarity);
+test('earnability: VDP is capped below any paying program', () => {
+  const vdp = scoreEarnability({ offersBounty: false, isOpen: true, scannableAssets: 20 });
+  const pays = scoreEarnability({ offersBounty: true, isOpen: true, maxBountyUsd: 500, scannableAssets: 1 });
+  assert.ok(vdp.total < pays.total);
+  assert.match(vdp.reason, /VDP/);
+});
+
+test('earnability: bigger payout and more scannable surface score higher', () => {
+  const small = scoreEarnability({ offersBounty: true, isOpen: true, maxBountyUsd: 100, scannableAssets: 1, programAgeDays: 3000 });
+  const big = scoreEarnability({ offersBounty: true, isOpen: true, maxBountyUsd: 20000, scannableAssets: 18, programAgeDays: 100 });
+  assert.ok(big.total > small.total);
+  assert.ok(big.total <= 1);
+});
+
+test('countScannableAssets ignores source repos and mobile builds', () => {
+  const n = countScannableAssets([
+    'api.acme.com',
+    'https://github.com/acme/repo',
+    'com.acme.android',
+    '10.0.0.1',
+    'https://play.google.com/store/apps/details?id=x',
+  ]);
+  assert.equal(n, 2); // api.acme.com + the IP
 });
 
 test('mapHackerOne maps the documented shape', () => {

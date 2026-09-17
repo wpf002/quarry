@@ -113,13 +113,13 @@ export function ConfidenceBand({ value }: { value: number | null | undefined }) 
   return <span className={`pill ${cls}`}>{band}</span>;
 }
 
-export function Pager({ page, totalPages, basePath }: { page: number; totalPages: number; basePath: string }) {
+export function Pager({ page, totalPages, basePath, extraQuery = '' }: { page: number; totalPages: number; basePath: string; extraQuery?: string }) {
   if (totalPages <= 1) return null;
   const link = (p: number, label: string, disabled: boolean) =>
     disabled ? (
       <span className="btn btn-sm" style={{ opacity: 0.4, pointerEvents: 'none' }}>{label}</span>
     ) : (
-      <Link className="btn btn-sm" href={`${basePath}?page=${p}`}>{label}</Link>
+      <Link className="btn btn-sm" href={`${basePath}?page=${p}${extraQuery}`}>{label}</Link>
     );
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
@@ -128,4 +128,40 @@ export function Pager({ page, totalPages, basePath }: { page: number; totalPages
       {link(page + 1, 'Next →', page >= totalPages)}
     </div>
   );
+}
+
+export function SortHeader({
+  label, field, sort, dir, basePath, width,
+}: { label: string; field: string; sort: string; dir: string; basePath: string; width?: number }) {
+  const active = sort === field;
+  const nextDir = active && dir === 'desc' ? 'asc' : 'desc';
+  return (
+    <th style={width ? { width } : undefined}>
+      <Link href={`${basePath}?sort=${field}&dir=${nextDir}`} style={{ color: active ? 'var(--accent)' : 'inherit' }}>
+        {label}{active ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}
+      </Link>
+    </th>
+  );
+}
+
+export function StatusPill({ status }: { status: string | null | undefined }) {
+  const v = (status ?? '').toLowerCase();
+  if (!v) return <span className="pill pill-muted">unknown</span>;
+  if (v === 'open') return <span className="pill pill-accent">open</span>;
+  if (v === 'paused') return <span className="pill pill-warn">paused</span>;
+  return <span className="pill pill-danger">{v}</span>;
+}
+
+export function PaysPill({ offersBounty }: { offersBounty: boolean }) {
+  return offersBounty
+    ? <span className="pill pill-accent">bounty</span>
+    : <span className="pill pill-muted">vdp</span>;
+}
+
+export function money(amount: number | null | undefined, currency: string | null | undefined, approx = false) {
+  if (!amount) return '—';
+  const cur = (currency ?? 'usd').toLowerCase();
+  const n = amount.toLocaleString();
+  const s = cur === 'usd' ? `$${n}` : cur === 'eur' ? `€${n}` : `${n} ${cur.toUpperCase()}`;
+  return approx ? `~${s}` : s;
 }

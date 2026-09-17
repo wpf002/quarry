@@ -9,6 +9,10 @@ export interface RawProgram {
   name: string;
   policyRaw: string;
   maxBountyUsd?: number;
+  bountyCurrency?: string;
+  offersBounty?: boolean;
+  platformStatus?: string; // open | paused | closed
+  startedAt?: Date;
   url?: string;
   meta?: Record<string, unknown>;
 }

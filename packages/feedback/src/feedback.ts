@@ -1,6 +1,6 @@
 import { prisma, type SubmissionState } from '@quarry/db';
 import { audit } from '@quarry/core';
-import { scoreProgram } from '@quarry/discovery';
+import { scoreEarnability } from '@quarry/discovery';
 import { computeOutcomeStats } from './outcomes.js';
 import { scoreMultiplier } from './scoring-feedback.js';
 
@@ -32,12 +32,14 @@ export async function recomputeProgramScore(programId: string): Promise<number> 
   const scope = (program.parsedScope ?? {}) as { inScope?: string[] };
   const inScope = scope.inScope ?? [];
 
-  const base = scoreProgram({
+  const base = scoreEarnability({
+    offersBounty: program.offersBounty,
+    isOpen: (program.platformStatus ?? 'open') === 'open',
     maxBountyUsd: program.maxBountyUsd ?? undefined,
-    inScopeCount: inScope.length,
-    parseConfidence: program.parseConfidence,
-    ambiguityCount: program.ambiguityFlags.length,
-    hasWideScope: inScope.some((a) => a.startsWith('*.')),
+    scannableAssets: program.scannableAssets,
+    programAgeDays: program.startedAt
+      ? Math.floor((Date.now() - program.startedAt.getTime()) / 86_400_000)
+      : undefined,
   });
 
   const submissions = await prisma.submission.findMany({

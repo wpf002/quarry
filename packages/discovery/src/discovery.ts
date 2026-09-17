@@ -1,10 +1,11 @@
 import { prisma } from '@quarry/db';
 import { audit } from '@quarry/core';
 import { HeuristicPolicyParser, type PolicyParser, type ParsedScope } from '@quarry/ai';
-import type { RawProgram, ScoreBreakdown } from './types.js';
+import type { RawProgram } from './types.js';
+import type { EarnabilityScore as ScoreBreakdown } from './scorer.js';
 import type { PlatformConnector } from './connectors.js';
 import { defaultConnectors } from './connectors.js';
-import { scoreProgram } from './scorer.js';
+import { scoreEarnability, countScannableAssets } from './scorer.js';
 
 export interface DiscoveredProgram {
   raw: RawProgram;
@@ -12,6 +13,7 @@ export interface DiscoveredProgram {
   parseConfidence: number;
   ambiguityFlags: string[];
   score: ScoreBreakdown;
+  scannableAssets: number;
 }
 
 // AUTONOMOUS. Pull programs from every configured connector, parse each policy,
@@ -33,14 +35,15 @@ export async function discoverPrograms(
     if (!raws) continue; // connector had no creds
     for (const raw of raws) {
       const parsed = parser.parsePolicy(raw.policyRaw);
-      const score = scoreProgram({
+      const scannable = countScannableAssets(parsed.scope.inScope);
+      const score = scoreEarnability({
+        offersBounty: raw.offersBounty ?? false,
+        isOpen: (raw.platformStatus ?? 'open') === 'open',
         maxBountyUsd: raw.maxBountyUsd,
-        inScopeCount: parsed.scope.inScope.length,
-        parseConfidence: parsed.confidence,
-        ambiguityCount: parsed.ambiguityFlags.length,
-        hasWideScope:
-          parsed.scope.inScope.some((a: string) => a.startsWith('*.')) ||
-          parsed.ambiguityFlags.some((f: string) => f.includes('open-ended')),
+        scannableAssets: scannable,
+        programAgeDays: raw.startedAt
+          ? Math.floor((Date.now() - raw.startedAt.getTime()) / 86_400_000)
+          : undefined,
       });
       out.push({
         raw,
@@ -48,6 +51,7 @@ export async function discoverPrograms(
         parseConfidence: parsed.confidence,
         ambiguityFlags: parsed.ambiguityFlags,
         score,
+        scannableAssets: scannable,
       });
     }
   }
@@ -88,6 +92,9 @@ export async function persistDiscovered(
         data: {
           name: d.raw.name,
           maxBountyUsd: d.raw.maxBountyUsd ?? existing.maxBountyUsd,
+          offersBounty: d.raw.offersBounty ?? existing.offersBounty,
+          platformStatus: d.raw.platformStatus ?? existing.platformStatus,
+          bountyCurrency: d.raw.bountyCurrency ?? existing.bountyCurrency,
         },
       });
       unchanged++;
@@ -120,6 +127,11 @@ export async function persistDiscovered(
       parseConfidence: d.parseConfidence,
       ambiguityFlags: d.ambiguityFlags,
       maxBountyUsd: d.raw.maxBountyUsd ?? null,
+      bountyCurrency: d.raw.bountyCurrency ?? null,
+      offersBounty: d.raw.offersBounty ?? false,
+      platformStatus: d.raw.platformStatus ?? null,
+      startedAt: d.raw.startedAt ?? null,
+      scannableAssets: d.scannableAssets,
       score: d.score.total,
     };
 

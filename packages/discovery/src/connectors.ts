@@ -28,7 +28,12 @@ export function mapHackerOne(data: unknown): RawProgram[] {
     handle: str(r?.attributes?.handle ?? r?.id),
     name: str(r?.attributes?.name ?? r?.attributes?.handle),
     policyRaw: str(r?.attributes?.policy ?? ''),
-    maxBountyUsd: num(r?.attributes?.max_bounty),
+    // HackerOne exposes no bounty amount; best-effort read from policy prose.
+    maxBountyUsd: num(r?.attributes?.max_bounty) ?? extractMaxBounty(str(r?.attributes?.policy ?? '')),
+    bountyCurrency: str(r?.attributes?.currency ?? '') || undefined,
+    offersBounty: r?.attributes?.offers_bounties === true,
+    platformStatus: str(r?.attributes?.submission_state ?? '') || undefined,
+    startedAt: r?.attributes?.started_accepting_at ? new Date(r.attributes.started_accepting_at) : undefined,
     url: r?.attributes?.handle
       ? `https://hackerone.com/${r.attributes.handle}`
       : undefined,
@@ -100,7 +105,10 @@ export function mapIntigriti(data: unknown): RawProgram[] {
     name: str(r?.name ?? r?.companyName),
     policyRaw: str(r?.description ?? ''),
     maxBountyUsd: num(r?.maxBounty?.value ?? r?.maxBounty),
-    url: r?.handle ? `https://app.intigriti.com/researcher/programs/${r.handle}` : undefined,
+    bountyCurrency: str(r?.maxBounty?.currency ?? '') || undefined,
+    offersBounty: Number(r?.maxBounty?.value ?? 0) > 0,
+    platformStatus: str(r?.status?.value ?? '').toLowerCase() || undefined,
+    url: str(r?.webLinks?.detail ?? '') || undefined,
   }));
 }
 
@@ -149,6 +157,21 @@ export class YesWeHackConnector implements PlatformConnector {
     if (!res.ok) throw new Error(`yeswehack ${res.status}`);
     return mapYesWeHack(await res.json());
   }
+}
+
+/**
+ * Best-effort max bounty from policy prose (e.g. "Bounty Range: ~$300 - $3,000").
+ * HackerOne gives no structured amount, so this is approximate by nature.
+ */
+export function extractMaxBounty(policy: string): number | undefined {
+  if (!policy) return undefined;
+  let best: number | undefined;
+  for (const m of policy.matchAll(/\$\s?([\d][\d,]{2,})/g)) {
+    const n = Number((m[1] ?? '').replace(/,/g, ''));
+    if (!Number.isFinite(n) || n > 1_000_000) continue; // ignore silly figures
+    if (best === undefined || n > best) best = n;
+  }
+  return best;
 }
 
 // --- helpers ---------------------------------------------------------------

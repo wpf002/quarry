@@ -1,55 +1,82 @@
-import type { ScoreInputs, ScoreBreakdown } from './types.js';
+// Earnability: the odds Quarry actually lands a PAID bug on this program.
+// Deliberately hunter-facing, not a measure of how well we parsed anything.
 
-// ProgramScorer — a weighted, tunable rank in 0..1. Higher is a better place to
-// spend hunting time. Pure and deterministic so it can be tested and re-run.
-export const DEFAULT_WEIGHTS = {
-  reward: 0.35,
-  scopeBreadth: 0.2,
-  policyClarity: 0.2,
-  responsiveness: 0.15,
-  competition: 0.1,
-} as const;
+export interface EarnabilityInput {
+  /** false = VDP: reputation only, no money. */
+  offersBounty: boolean;
+  /** platform says submissions are open. */
+  isOpen: boolean;
+  /** real amount where the platform gives one; undefined = unknown. */
+  maxBountyUsd?: number;
+  /** assets Quarry can actually test (web hosts), not source repos or apps. */
+  scannableAssets: number;
+  /** older programs are more picked over. */
+  programAgeDays?: number;
+}
+
+export interface EarnabilityScore {
+  total: number; // 0..1
+  payout: number;
+  surface: number;
+  freshness: number;
+  reason: string;
+}
 
 const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
 
-export function scoreProgram(
-  input: ScoreInputs,
-  weights = DEFAULT_WEIGHTS,
-): ScoreBreakdown {
-  // Reward: log-ish scaling; $5k+ approaches the ceiling.
-  const reward = input.maxBountyUsd
-    ? clamp01(Math.log10(input.maxBountyUsd + 1) / Math.log10(10001))
-    : 0.2;
+export const EARNABILITY_WEIGHTS = { payout: 0.45, surface: 0.35, freshness: 0.2 } as const;
 
-  // Scope breadth: more concrete in-scope assets = more surface, capped at 10.
-  const scopeBreadth = clamp01(input.inScopeCount / 10);
+export function scoreEarnability(i: EarnabilityInput): EarnabilityScore {
+  // Closed to submissions: you cannot earn, full stop.
+  if (!i.isOpen) {
+    return { total: 0, payout: 0, surface: 0, freshness: 0, reason: 'closed to submissions' };
+  }
 
-  // Policy clarity: parser confidence minus an ambiguity penalty.
-  const policyClarity = clamp01(
-    input.parseConfidence - input.ambiguityCount * 0.1,
-  );
+  const surface = clamp01(i.scannableAssets / 20);
 
-  // Responsiveness: platform stat, else a neutral prior.
-  const responsiveness = clamp01(input.responseRate ?? 0.5);
+  // No bounty on offer: reputation only. Capped low so these never outrank
+  // paying programs, but not zero -- they still build account standing.
+  if (!i.offersBounty) {
+    return {
+      total: Number((surface * 0.15).toFixed(4)),
+      payout: 0,
+      surface: Number(surface.toFixed(4)),
+      freshness: 0,
+      reason: 'VDP: no bounty offered',
+    };
+  }
 
-  // Competition proxy: wide, well-known scope = more hunters = lower edge.
-  // We reward NARROW, clear scope here.
-  const competition = clamp01(input.hasWideScope ? 0.3 : 0.7);
+  // Unknown amount is common on HackerOne; treat as a middling payout rather
+  // than punishing the program for the platform's missing field.
+  const payout = i.maxBountyUsd
+    ? clamp01(Math.log10(i.maxBountyUsd + 1) / Math.log10(50001))
+    : 0.45;
+
+  const freshness = i.programAgeDays === undefined ? 0.5 : clamp01(1 - i.programAgeDays / 3650);
 
   const total = clamp01(
-    reward * weights.reward +
-      scopeBreadth * weights.scopeBreadth +
-      policyClarity * weights.policyClarity +
-      responsiveness * weights.responsiveness +
-      competition * weights.competition,
+    payout * EARNABILITY_WEIGHTS.payout +
+      surface * EARNABILITY_WEIGHTS.surface +
+      freshness * EARNABILITY_WEIGHTS.freshness,
   );
 
   return {
     total: Number(total.toFixed(4)),
-    reward: Number(reward.toFixed(4)),
-    scopeBreadth: Number(scopeBreadth.toFixed(4)),
-    policyClarity: Number(policyClarity.toFixed(4)),
-    responsiveness: Number(responsiveness.toFixed(4)),
-    competition: Number(competition.toFixed(4)),
+    payout: Number(payout.toFixed(4)),
+    surface: Number(surface.toFixed(4)),
+    freshness: Number(freshness.toFixed(4)),
+    reason: i.maxBountyUsd ? `pays up to ${i.maxBountyUsd}` : 'pays bounties, amount unknown',
   };
+}
+
+/** Assets Quarry can actually point a scanner at. */
+export function countScannableAssets(inScope: string[]): number {
+  return inScope.filter((a) => {
+    const v = a.toLowerCase();
+    if (!v) return false;
+    if (v.includes('github.com') || v.includes('gitlab.com')) return false; // source
+    if (v.endsWith('.apk') || v.endsWith('.ipa')) return false; // mobile builds
+    if (v.startsWith('com.') || v.includes('play.google.com') || v.includes('apps.apple.com')) return false;
+    return /[a-z0-9.-]+\.[a-z]{2,}/.test(v) || /^\d{1,3}(\.\d{1,3}){3}/.test(v);
+  }).length;
 }
