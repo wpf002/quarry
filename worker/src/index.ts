@@ -1,7 +1,7 @@
 // Autonomous loop. Everything scheduled here is unattended and passive-safe.
 // Active scanning is NOT scheduled here; it only runs from an approved gate.
 import { discoverPrograms, persistDiscovered, enrichAndPersist } from '@quarry/discovery';
-import { runAutoScans, runAutoSubmit, selectTopPrograms, runAutopilot, liveCertFetcher } from '@quarry/autonomy';
+import { runAutoScans, runAutoSubmit, selectTopPrograms, runAutopilot, liveCertFetcher, refreshTier3Queue } from '@quarry/autonomy';
 import { enumerateAssets, persistAssets } from '@quarry/recon-passive';
 import { reportReadyFindings } from '@quarry/analyzer';
 import { draftAndQueue } from '@quarry/reporter';
@@ -62,6 +62,11 @@ async function tick() {
     if ((process.env.QUARRY_AUTO_ONBOARD ?? '').toLowerCase() === 'on') {
       await autoOnboard();
     }
+
+    // Fill the Tier-3 approval queue from Tier 1/2 signals. This ONLY creates
+    // PENDING rows for a human to approve; it never originates traffic.
+    const t3 = await refreshTier3Queue();
+    if (t3.added > 0) console.log(`[tier3] +${t3.added} candidate(s) queued for approval`);
 
     // Phase 2+ (passive recon, analyze, report) hang off the same loop as they
     // land. None of them originate target traffic.

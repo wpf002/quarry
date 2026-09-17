@@ -106,6 +106,7 @@ async function persistActiveResult(
         confidence: 0.5,
         dupRisk: 0.5,
         evidence: f.evidence as object,
+        target: result.target,
       },
     });
   }

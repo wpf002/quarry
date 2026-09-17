@@ -5,6 +5,7 @@ import { KillSwitch } from '../../components/KillSwitch';
 import { SignCampaign } from '../../components/SignCampaign';
 import { PauseCampaign } from '../../components/PauseCampaign';
 import { RevokePreauth } from '../../components/RevokePreauth';
+import { Tier3Queue } from '../../components/Tier3Queue';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export default async function Autopilot() {
   const now = Date.now();
 
   const eligible = programs
-    .filter((p) => p.ambiguityFlags.length === 0 && p.allowlist.length > 0 && p.allowlist.every((a: any) => a.ownershipVerified))
+    .filter((p) => p.allowlist.length > 0 && p.allowlist.every((a: any) => a.ownershipVerified))
     .map((p) => ({ id: p.id, handle: p.handle }));
 
   return (
@@ -36,6 +37,8 @@ export default async function Autopilot() {
       </div>
 
       <div style={{ marginBottom: 18 }}><KillSwitch initialEngaged={killed} /></div>
+
+      <div style={{ marginBottom: 18 }}><Tier3Queue /></div>
 
       <SignCampaign eligible={eligible} />
 

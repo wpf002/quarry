@@ -11,3 +11,10 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   if (!res.ok) throw new Error((json as any)?.error ?? `HTTP ${res.status}`);
   return json as T;
 }
+
+export async function apiGet<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, { cache: 'no-store' });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as any)?.error ?? `HTTP ${res.status}`);
+  return json as T;
+}

@@ -7,9 +7,9 @@ import {
   evaluate as evaluateMatch,
 } from '@quarry/core';
 import { recordOutcome, recomputeProgramScore } from '@quarry/feedback';
-import { runActiveScan, KillSwitchEngaged, InfiltrError } from '@quarry/recon-active';
+import { runActiveScan, KillSwitchEngaged, InfiltrError, TierRefusal } from '@quarry/recon-active';
 import { ScopeRefusal } from '@quarry/core';
-import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signCampaign, pauseCampaign, CampaignRefusal, liveVerify } from '@quarry/autonomy';
+import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signCampaign, pauseCampaign, CampaignRefusal, liveVerify, refreshTier3Queue, listTier3Queue, approveAndRunTier3, dismissTier3, Tier3Refusal } from '@quarry/autonomy';
 
 const app = Fastify({ logger: true });
 
@@ -144,25 +144,84 @@ app.post('/campaigns/:id/pause', async (req, reply) => {
   return { ok: true };
 });
 
-// --- Manual single-target scan (gated, Tier 1) ---------------------------
+// --- Manual single-target scan (gated) -----------------------------------
 // Runs ONE authorized target through the same gate the autopilot uses. It
 // refuses unless the target is on a live allowlist under a valid approval.
+// Tier 3 (high-impact) is human-only: it requires an explicit per-scan
+// confirmation and is NEVER run by the scheduler or a campaign.
 app.post('/programs/:id/scan-target', async (req, reply) => {
   const { id } = req.params as { id: string };
-  const { target, tier } = (req.body ?? {}) as { target?: string; tier?: number };
+  const { target, tier, confirm } = (req.body ?? {}) as {
+    target?: string; tier?: number; confirm?: boolean;
+  };
   if (!target) return reply.code(400).send({ error: 'target required' });
-  if (tier === 3) return reply.code(400).send({ error: 'Tier 3 is never delegated' });
-  const t = tier === 2 ? 2 : 1;
+  const t = tier === 3 ? 3 : tier === 2 ? 2 : 1;
+  if (t === 3 && !confirm) {
+    return reply.code(400).send({ error: 'Tier 3 requires an explicit per-scan confirmation' });
+  }
   try {
-    const result = await runActiveScan({ programId: id, target, tier: t, profile: { tiers: [t] } });
+    const result = await runActiveScan({
+      programId: id,
+      target,
+      tier: t,
+      profile: { tiers: [t] },
+      perActionConfirmed: t === 3,
+    });
     return { ok: true, assets: result.assets.length, findings: result.findings.length };
   } catch (e) {
     if (e instanceof KillSwitchEngaged) return reply.code(409).send({ error: 'kill switch engaged' });
+    if (e instanceof TierRefusal) return reply.code(400).send({ error: e.message });
     if (e instanceof ScopeRefusal) return reply.code(403).send({ error: e.message });
-    if (e instanceof InfiltrError) return reply.code(502).send({ error: `infiltr ${e.status || 'timeout'}` });
+    if (e instanceof InfiltrError) {
+      // Infiltr's own policy rejected the request (e.g. Tier 3 not enabled on it).
+      if (e.status === 400 || e.status === 403) {
+        return reply.code(422).send({ error: `Infiltr refused this scan (status ${e.status}) — its own policy may not permit this tier.` });
+      }
+      return reply.code(502).send({ error: `infiltr ${e.status || 'timeout'}` });
+    }
     req.log.error(e);
     return reply.code(500).send({ error: 'scan failed' });
   }
+});
+
+// --- Tier 3 approval queue ------------------------------------------------
+// The autopilot fills this from Tier 1/2 signals; a human approves a batch in
+// one action. Nothing here runs until approved, and each run still passes the
+// per-target gate. Tier 3 is never run by the scheduler.
+app.get('/tier3/queue', async () => {
+  await refreshTier3Queue().catch(() => ({ added: 0 }));
+  const queue = await listTier3Queue();
+  return {
+    queue: queue.map((c) => ({
+      id: c.id,
+      programId: c.programId,
+      handle: c.program?.handle,
+      target: c.target,
+      reason: c.reason,
+      createdAt: c.createdAt,
+    })),
+  };
+});
+
+app.post('/tier3/approve', async (req, reply) => {
+  const { ids, by } = (req.body ?? {}) as { ids?: string[]; by?: string };
+  if (!by) return reply.code(400).send({ error: 'by (human identity) required' });
+  if (!Array.isArray(ids) || ids.length === 0) return reply.code(400).send({ error: 'ids required' });
+  try {
+    const results = await approveAndRunTier3(ids, by);
+    return { ok: true, results };
+  } catch (e) {
+    if (e instanceof Tier3Refusal) return reply.code(400).send({ error: e.message });
+    req.log.error(e);
+    return reply.code(500).send({ error: 'tier 3 batch failed' });
+  }
+});
+
+app.post('/tier3/dismiss', async (req, reply) => {
+  const { ids, by } = (req.body ?? {}) as { ids?: string[]; by?: string };
+  if (!by) return reply.code(400).send({ error: 'by required' });
+  if (!Array.isArray(ids) || ids.length === 0) return reply.code(400).send({ error: 'ids required' });
+  return dismissTier3(ids, by);
 });
 
 // --- L3: auto-submit policy -----------------------------------------------

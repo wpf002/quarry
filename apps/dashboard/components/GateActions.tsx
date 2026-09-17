@@ -27,7 +27,7 @@ export function GateActions({
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
-  const [scanTier, setScanTier] = useState<1 | 2>(1);
+  const [scanTier, setScanTier] = useState<1 | 2 | 3>(1);
 
   const active = allowlist.filter((e) => e.active);
   const ready = active.length > 0;
@@ -65,16 +65,24 @@ export function GateActions({
           <h3 style={{ fontSize: 15 }}>Targets</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span className="scope-label" style={{ margin: 0 }}>Scan tier</span>
-            {[1, 2].map((t) => (
-              <button
-                key={t}
-                className={`btn btn-sm${scanTier === t ? ' btn-primary' : ''}`}
-                onClick={() => setScanTier(t as 1 | 2)}
-                title={t === 1 ? 'Passive / safe checks' : 'Low-impact active checks'}
-              >
-                T{t}
-              </button>
-            ))}
+            {[1, 2, 3].map((t) => {
+              const on = scanTier === t;
+              return (
+                <button
+                  key={t}
+                  className={`btn btn-sm${on && t !== 3 ? ' btn-primary' : ''}`}
+                  style={on && t === 3 ? { background: 'var(--danger)', borderColor: 'var(--danger)', color: '#1a0e12' } : undefined}
+                  onClick={() => setScanTier(t as 1 | 2 | 3)}
+                  title={
+                    t === 1 ? 'Passive / safe checks'
+                      : t === 2 ? 'Low-impact active checks'
+                        : 'High-impact exploitation — you confirm each scan, never automated'
+                  }
+                >
+                  T{t}
+                </button>
+              );
+            })}
           </div>
         </div>
         {active.length > 0 && (
@@ -102,12 +110,16 @@ export function GateActions({
                           <button
                             className="btn btn-sm"
                             disabled={busy != null}
-                            title="Run one Tier-1 scan on this host via Infiltr. Needs an active authorization."
+                            title="Run one scan on this host via Infiltr, at the selected tier. Needs an active authorization."
                             onClick={async () => {
+                              if (scanTier === 3 && !window.confirm(
+                                `Tier 3 runs a high-impact exploitation check against ${e.pattern}. Only run it on a host you own that the program authorizes for active testing. Continue?`,
+                              )) return;
                               setBusy('scan' + e.id); setErr(null); setOk(null);
                               try {
                                 const r = await apiPost<{ assets: number; findings: number }>(
-                                  `/programs/${programId}/scan-target`, { target: e.pattern, tier: scanTier },
+                                  `/programs/${programId}/scan-target`,
+                                  { target: e.pattern, tier: scanTier, confirm: scanTier === 3 },
                                 );
                                 setOk(`Scanned ${e.pattern} (Tier ${scanTier}): ${r.findings} finding(s), ${r.assets} asset(s).`);
                                 router.refresh();
