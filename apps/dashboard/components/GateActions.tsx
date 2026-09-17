@@ -150,6 +150,12 @@ export function GateActions({
                   setBusy('scan'); setErr(null); setOk(null);
                   setProg({ done: 0, total: active.length });
                   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+                  // Authorize every verified target first (covers ones added later).
+                  try {
+                    await apiPost(`/programs/${programId}/authorize`, { by: who });
+                  } catch (e) {
+                    setBusy(null); setProg(null); setErr((e as Error).message); return;
+                  }
                   // Infiltr rate-limits (429). Pace the batch and retry transient 429s.
                   const scanOne = async (target: string) => {
                     for (let attempt = 0; ; attempt++) {

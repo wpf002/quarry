@@ -144,6 +144,57 @@ app.post('/campaigns/:id/pause', async (req, reply) => {
   return { ok: true };
 });
 
+// Verification is the human sign-off. Ensure every active, ownership-verified
+// target has a live scan approval (idempotent — only fills the gaps) and that a
+// standing authorization exists. Covers targets added after an earlier auth.
+async function ensureAuthorized(programId: string, by: string): Promise<{ approved: number }> {
+  const now = new Date();
+  const entries = await prisma.allowlist.findMany({
+    where: { programId, active: true, ownershipVerified: true },
+  });
+  if (entries.length === 0) return { approved: 0 };
+  const live = await prisma.scanApproval.findMany({
+    where: { programId, state: 'APPROVED', expiresAt: { gt: now } },
+    select: { allowlistId: true },
+  });
+  const covered = new Set(live.map((a) => a.allowlistId));
+  const missing = entries.filter((e) => !covered.has(e.id));
+  const expiresAt = new Date(now.getTime() + 7 * 86_400_000);
+  if (missing.length > 0) {
+    await prisma.scanApproval.createMany({
+      data: missing.map((e) => ({
+        programId,
+        allowlistId: e.id,
+        state: 'APPROVED' as const,
+        approvedBy: by,
+        approvedAt: now,
+        expiresAt,
+        scanProfile: { tiers: [1, 2] } as object,
+      })),
+    });
+  }
+  const livePre = await prisma.preAuthorization.findFirst({
+    where: { programId, revoked: false, expiresAt: { gt: now } },
+  });
+  if (!livePre) {
+    await prisma.preAuthorization.create({
+      data: { programId, signedBy: by, tiers: [1, 2], expiresAt },
+    });
+  }
+  return { approved: missing.length };
+}
+
+// Self-healing authorize: called before a manual scan so every verified target
+// is covered, even ones added after the last authorization.
+app.post('/programs/:id/authorize', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { by } = (req.body ?? {}) as { by?: string };
+  if (!by) return reply.code(400).send({ error: 'by required' });
+  const r = await ensureAuthorized(id, by);
+  await audit({ actor: `human:${by}`, action: 'authorize.ensure', programId: id, detail: r });
+  return { ok: true, ...r };
+});
+
 // Build the optional Infiltr context (IDOR 2nd identity / SSRF canary) from a
 // program's saved ScanContext. Returns undefined when nothing useful is set.
 async function loadScanContext(programId: string) {
@@ -268,21 +319,12 @@ app.post('/allowlist/:id/verify-ownership', async (req, reply) => {
   await prisma.allowlist.update({ where: { id }, data: { ownershipVerified: true, ownershipMethod: method } });
   await audit({ actor: `human:${by}`, action: 'ownership.verify', programId: entry.programId, target: entry.pattern, detail: { allowlistId: id, method, verified: result.verified, evidence: result.evidence } });
 
-  // Verifying ownership is the human sign-off: once every active target is
-  // verified, authorize the program so it can be scanned — no separate step.
+  // Verifying ownership is the human sign-off: authorize this target right away
+  // so it can be scanned, no separate step. Idempotent and per-entry, so targets
+  // added later get authorized too.
   let authorized = false;
-  const active = await prisma.allowlist.findMany({ where: { programId: entry.programId, active: true } });
-  if (active.length > 0 && active.every((e) => e.ownershipVerified)) {
-    const livePre = await prisma.preAuthorization.findFirst({
-      where: { programId: entry.programId, revoked: false, expiresAt: { gt: new Date() } },
-    });
-    if (!livePre) {
-      try { await grantPreAuthorization(entry.programId, by); authorized = true; }
-      catch (e) { req.log.error(e); }
-    } else {
-      authorized = true;
-    }
-  }
+  try { await ensureAuthorized(entry.programId, by); authorized = true; }
+  catch (e) { req.log.error(e); }
   return { ok: true, method, authorized, evidence: result.evidence };
 });
 
