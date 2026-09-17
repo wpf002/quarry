@@ -98,7 +98,7 @@ export default async function Findings({ searchParams }: { searchParams: Promise
                 <th>Found</th>
                 <th>Severity</th>
                 <th>Confidence</th>
-                <th>Gate</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -118,9 +118,9 @@ export default async function Findings({ searchParams }: { searchParams: Promise
                     <td><SeverityPill severity={f.severity} /></td>
                     <td><ConfidenceBand value={f.confidence} /></td>
                     <td>
-                      {pass ? <span className="pill pill-accent">report-ready</span>
-                        : f.humanConfirmed ? <span className="pill pill-warn">below gate</span>
-                        : <span className="pill pill-muted">needs confirm</span>}
+                      {pass ? <span className="pill pill-accent">Ready to send</span>
+                        : f.humanConfirmed ? <span className="pill pill-warn">Low confidence</span>
+                        : <span className="pill pill-muted">Needs review</span>}
                     </td>
                   </tr>
                 );
