@@ -149,20 +149,32 @@ export function GateActions({
                 onClick={async () => {
                   setBusy('scan'); setErr(null); setOk(null);
                   setProg({ done: 0, total: active.length });
+                  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+                  // Infiltr rate-limits (429). Pace the batch and retry transient 429s.
+                  const scanOne = async (target: string) => {
+                    for (let attempt = 0; ; attempt++) {
+                      try {
+                        return await apiPost<{ assets: number; findings: number }>(
+                          `/programs/${programId}/scan-target`, { target, tier: scanTier },
+                        );
+                      } catch (err) {
+                        const msg = (err as Error).message;
+                        if (msg.includes('429') && attempt < 3) { await sleep(3000 * (attempt + 1)); continue; }
+                        throw err;
+                      }
+                    }
+                  };
                   let findings = 0, assets = 0;
                   const fails: string[] = [];
                   for (let i = 0; i < active.length; i++) {
-                    const e = active[i];
                     try {
-                      const r = await apiPost<{ assets: number; findings: number }>(
-                        `/programs/${programId}/scan-target`,
-                        { target: e.pattern, tier: scanTier },
-                      );
+                      const r = await scanOne(active[i].pattern);
                       findings += r.findings; assets += r.assets;
                     } catch (err) {
-                      fails.push(`${e.pattern}: ${(err as Error).message}`);
+                      fails.push(`${active[i].pattern}: ${(err as Error).message}`);
                     }
                     setProg({ done: i + 1, total: active.length });
+                    if (i < active.length - 1) await sleep(1500); // pace between targets
                   }
                   setBusy(null); setProg(null);
                   if (fails.length) setErr(fails.join(' · '));
