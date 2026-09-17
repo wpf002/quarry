@@ -5,3 +5,5 @@ dist/
 .env
 *.log
 packages/db/prisma/*.db
+.env*.local
+*.env.local
