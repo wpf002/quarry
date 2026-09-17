@@ -63,3 +63,44 @@ export function EmptyState({
     </div>
   );
 }
+
+const SEV_CLASS: Record<string, string> = {
+  CRITICAL: 'pill-danger',
+  HIGH: 'pill-danger',
+  MEDIUM: 'pill-warn',
+  LOW: 'pill-info',
+  INFO: 'pill-muted',
+};
+
+export function SeverityPill({ severity }: { severity: string }) {
+  return (
+    <span className={`pill ${SEV_CLASS[severity] ?? 'pill-muted'}`}>
+      {severity.toLowerCase()}
+    </span>
+  );
+}
+
+export function Meter({
+  value,
+  invert,
+}: {
+  value: number | null | undefined;
+  invert?: boolean;
+}) {
+  const v = Math.max(0, Math.min(1, value ?? 0));
+  // invert: high is bad (dup risk) -> red; else high is good -> green
+  const good = invert ? 1 - v : v;
+  const color =
+    good > 0.66 ? 'var(--accent)' : good > 0.33 ? 'var(--warn)' : 'var(--danger)';
+  return (
+    <div className="score">
+      <div className="score-track">
+        <div
+          className="score-fill"
+          style={{ width: `${v * 100}%`, background: color }}
+        />
+      </div>
+      <span className="score-num">{value == null ? '—' : v.toFixed(2)}</span>
+    </div>
+  );
+}

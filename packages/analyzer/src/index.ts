@@ -1,2 +1,6 @@
-// @quarry/analyzer — AUTONOMOUS: triage, chain detection, impact, dup risk
-export const PACKAGE = 'analyzer';
+export * from './types.js';
+export * from './dedup.js';
+export * from './chains.js';
+export * from './impact.js';
+export * from './quality.js';
+export * from './analyzer.js';
