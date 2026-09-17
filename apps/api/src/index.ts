@@ -6,6 +6,7 @@ import {
   ApprovalRefusal,
   evaluate as evaluateMatch,
 } from '@quarry/core';
+import { recordOutcome, recomputeProgramScore } from '@quarry/feedback';
 
 const app = Fastify({ logger: true });
 
@@ -129,6 +130,26 @@ app.post('/programs/:id/approve-scan', async (req, reply) => {
     req.log.error(e);
     return reply.code(500).send({ error: 'approval failed' });
   }
+});
+
+// --- feedback: submission outcomes ---------------------------------------
+app.post('/submissions/:id/outcome', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { state, payoutUsd, by } = (req.body ?? {}) as { state?: string; payoutUsd?: number; by?: string };
+  const allowed = ['SUBMITTED', 'TRIAGED', 'RESOLVED', 'DUPLICATE', 'OUT_OF_SCOPE', 'INFORMATIVE'];
+  if (!state || !allowed.includes(state) || !by) {
+    return reply.code(400).send({ error: `state (${allowed.join('|')}) and by required` });
+  }
+  const sub = await prisma.submission.findUnique({
+    where: { id },
+    select: { report: { select: { finding: { select: { programId: true } } } } },
+  });
+  if (!sub) return reply.code(404).send({ error: 'not found' });
+  await recordOutcome(id, { state: state as any, payoutUsd });
+  const programId = sub.report?.finding?.programId;
+  let score: number | undefined;
+  if (programId) score = await recomputeProgramScore(programId);
+  return { ok: true, score };
 });
 
 // --- audit trail ----------------------------------------------------------

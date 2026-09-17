@@ -89,6 +89,25 @@ pnpm worker               # autonomous loop
 
 ## Status
 
-Scaffold only. Modules are stubs. Build order: discovery → passive recon +
-reporter (autonomous revenue-adjacent value first) → analyzer → recon-active last,
-behind the gate.
+Phases 0–6 implemented. All package logic is pure and unit-tested (51+ tests);
+the enforcer suite gates every active target.
+
+| Phase | Package(s) | State |
+|---|---|---|
+| 0 Foundation | `core`, `db` | done — scope matcher + gate, audit, queues, offline migrations |
+| 1 Discovery | `discovery`, `ai` | done — read-only connectors, heuristic policy parser, scorer |
+| 2 Passive recon + reporter | `recon-passive`, `reporter` | done — CT/security.txt, contact finder, platform formatters, HELD_FOR_REVIEW queue |
+| 3 Analyzer | `analyzer` | done — triage, chains, impact, dup risk, quality gate |
+| 4 The gate | `api`, `dashboard` | done — ambiguity clearing, allowlist builder, one-click approve |
+| 5 Active recon | `recon-active` | done — Infiltr delegation behind the gate, tiers, kill switch |
+| 6 Feedback | `feedback` | done — outcome tracking, scorer feedback, metrics, strategic trigger |
+
+Two deliberate deferrals:
+- **Flint (AI seam):** not wired. `@quarry/ai` ships deterministic heuristic
+  implementations behind `PolicyParser` / `Triager` / `ReportDrafter`; Flint
+  drops in later behind the same interfaces.
+- **Live infra (Postgres/Redis/Railway):** not provisioned. Schema is
+  Postgres-targeted, migrations are generated offline, and every DB read in the
+  dashboard fails soft so the UI runs before infra exists.
+
+Run `pnpm build && pnpm typecheck && pnpm test` for the full green graph.

@@ -172,6 +172,8 @@ model Submission {
   reportId    String          @unique
   state       SubmissionState @default(QUEUED)
   platformRef String? // id returned by platform
+  payoutUsd   Int? // bounty paid, set on RESOLVED
+  resolvedAt  DateTime? // when the platform closed it
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }

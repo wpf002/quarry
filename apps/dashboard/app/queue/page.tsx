@@ -1,5 +1,6 @@
 import { prisma, safe } from '../../lib/db';
 import { EmptyState } from '../../components/ui';
+import { OutcomeControls } from '../../components/OutcomeControls';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +60,9 @@ export default async function Queue() {
                   <span className={`pill ${STATE_PILL[s.state] ?? 'pill-muted'}`}>
                     {s.state.toLowerCase().replace(/_/g, ' ')}
                   </span>
+                </div>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <OutcomeControls submissionId={s.id} />
                 </div>
               </div>
             );
