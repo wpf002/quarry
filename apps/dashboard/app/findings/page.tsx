@@ -41,24 +41,32 @@ const PAYABLE_CLASSES = [
   'zap-alert', // ZAP active-scan alerts: real vuln classes (xss, injection, …)
 ];
 
+function statusPill(f: { confidence: number; dupRisk: number; humanConfirmed: boolean }) {
+  if (f.humanConfirmed && f.confidence > GATE.minConfidence && f.dupRisk < GATE.maxDupRisk) return <span className="pill pill-accent">Ready to send</span>;
+  if (f.humanConfirmed) return <span className="pill pill-warn">Low confidence</span>;
+  return <span className="pill pill-muted">Needs review</span>;
+}
+
 export default async function Findings({ searchParams }: { searchParams: Promise<{ page?: string; all?: string }> }) {
   const sp = await searchParams;
   const page = Math.max(1, Number(sp?.page ?? '1') || 1);
   const showAll = sp?.all === '1';
-  const where = showAll
+  const payable = showAll
     ? {}
     : { OR: [{ vulnClass: { in: PAYABLE_CLASSES } }, { vulnClass: { startsWith: 'cve' } }] };
-  const [total, allTotal, findings, subs] = await Promise.all([
-    safe(() => prisma.finding.count({ where }), 0),
+  const [totalRuns, allTotal, runs, subs] = await Promise.all([
+    safe(() => prisma.scanRun.count(), 0),
     safe(() => prisma.finding.count(), 0),
     safe(
       () =>
-        prisma.finding.findMany({
-          where,
+        prisma.scanRun.findMany({
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * PAGE_SIZE,
           take: PAGE_SIZE,
-          include: { program: true },
+          include: {
+            program: { select: { handle: true } },
+            findings: { where: payable, orderBy: [{ severity: 'desc' }, { confidence: 'desc' }], take: 100 },
+          },
         }),
       [] as any[],
     ),
@@ -72,7 +80,7 @@ export default async function Findings({ searchParams }: { searchParams: Promise
       [] as any[],
     ),
   ]);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalRuns / PAGE_SIZE));
 
   return (
     <>
@@ -81,8 +89,8 @@ export default async function Findings({ searchParams }: { searchParams: Promise
           <h1 className="page-title">Findings</h1>
           <div className="page-sub">
             {showAll
-              ? 'Showing everything, including low-value informational findings.'
-              : 'Showing payable-class candidates. Header/endpoint/fingerprint noise is hidden.'}
+              ? 'One result per scan, everything shown (including low-value noise).'
+              : 'One result per scan, payable-class candidates only.'}
           </div>
         </div>
         <Link className="btn btn-sm" href={showAll ? '/findings' : '/findings?all=1'}>
@@ -90,52 +98,56 @@ export default async function Findings({ searchParams }: { searchParams: Promise
         </Link>
       </div>
 
-      {findings.length === 0 ? (
-        <EmptyState title={showAll ? 'No Findings Yet' : 'No Payable-Class Candidates Yet'}>
-          {showAll
-            ? 'Findings appear here once the analyzer has triaged them.'
-            : `Nothing payable so far. ${allTotal.toLocaleString()} low-value findings are hidden — the current Infiltr profile emits mostly headers and endpoints. Add real vuln modules to Infiltr to get paid-class results.`}
+      {runs.length === 0 ? (
+        <EmptyState title="No Scans Yet">
+          Each scan appears here as one result you can expand. Run a scan from a program page.
         </EmptyState>
       ) : (
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Finding</th>
-                <th>Found</th>
-                <th>Severity</th>
-                <th>Confidence</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {findings.map((f) => {
-                const pass = f.confidence > GATE.minConfidence && f.dupRisk < GATE.maxDupRisk && f.humanConfirmed;
-                return (
-                  <tr key={f.id}>
-                    <td>
-                      <Link href={`/findings/${f.id}`}>
-                        <div style={{ fontWeight: 600 }}>{f.title}</div>
-                        <div className="page-sub" style={{ marginTop: 2 }}>
-                          <span className="tag">{f.vulnClass}</span> <span className="tag">{f.program?.handle}</span>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="mono" style={{ color: 'var(--faint)', whiteSpace: 'nowrap' }}>{fmt(f.createdAt)}</td>
-                    <td><SeverityPill severity={f.severity} /></td>
-                    <td><ConfidenceBand value={f.confidence} /></td>
-                    <td>
-                      {pass ? <span className="pill pill-accent">Ready to send</span>
-                        : f.humanConfirmed ? <span className="pill pill-warn">Low confidence</span>
-                        : <span className="pill pill-muted">Needs review</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <Pager page={page} totalPages={totalPages} basePath="/findings" extraQuery={showAll ? '&all=1' : ''} total={total} pageSize={PAGE_SIZE} />
-        </div>
+        <>
+          <div className="grid" style={{ gap: 10 }}>
+            {runs.map((run) => {
+              const shown = run.findings.length;
+              return (
+                <details className="card" key={run.id} open={shown > 0 && shown <= 8}>
+                  <summary className="scope-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span>
+                      <span className="mono" style={{ fontWeight: 600 }}>{run.target}</span>
+                      <span className="tag" style={{ marginLeft: 8 }}>Tier {run.tier}</span>
+                      <span className="tag" style={{ marginLeft: 6 }}>{run.program?.handle}</span>
+                    </span>
+                    <span className="page-sub" style={{ whiteSpace: 'nowrap' }}>
+                      {shown} payable · {run.findingsCount} findings · {run.assetsCount} assets · {fmt(run.createdAt)}
+                    </span>
+                  </summary>
+                  {shown === 0 ? (
+                    <div className="page-sub" style={{ marginTop: 10 }}>No payable-class findings in this scan.</div>
+                  ) : (
+                    <div className="table-wrap" style={{ marginTop: 10 }}>
+                      <table className="table">
+                        <tbody>
+                          {run.findings.map((f: any) => (
+                            <tr key={f.id}>
+                              <td>
+                                <Link href={`/findings/${f.id}`}>
+                                  <div style={{ fontWeight: 600 }}>{f.title}</div>
+                                  <div className="page-sub" style={{ marginTop: 2 }}><span className="tag">{f.vulnClass}</span></div>
+                                </Link>
+                              </td>
+                              <td><SeverityPill severity={f.severity} /></td>
+                              <td><ConfidenceBand value={f.confidence} /></td>
+                              <td>{statusPill(f)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </details>
+              );
+            })}
+          </div>
+          <Pager page={page} totalPages={totalPages} basePath="/findings" extraQuery={showAll ? '&all=1' : ''} total={totalRuns} pageSize={PAGE_SIZE} />
+        </>
       )}
 
       <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Reports</h3>

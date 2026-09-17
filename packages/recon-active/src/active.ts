@@ -13,7 +13,7 @@ export interface ActiveDeps {
   infiltr?: InfiltrClient;
   killed?: () => Promise<boolean>;
   /** Persist results. Defaults to the DB writer below. */
-  persist?: (programId: string, result: InfiltrResult) => Promise<void>;
+  persist?: (programId: string, result: InfiltrResult, tier: number) => Promise<void>;
 }
 
 // Run ONE active target. Order is deliberate and non-negotiable:
@@ -56,7 +56,7 @@ export async function runActiveScan(
   });
 
   const result = await infiltr.scan(input.target, input.profile, input.context);
-  await persist(input.programId, result);
+  await persist(input.programId, result, input.tier);
   return result;
 }
 
@@ -92,6 +92,7 @@ const ENDPOINT_CLASSES = new Set(['discovered-endpoint']);
 async function persistActiveResult(
   programId: string,
   result: InfiltrResult,
+  tier: number,
 ): Promise<void> {
   // Route endpoint-enumeration "findings" into assets so they don't flood the
   // findings list; keep only real findings.
@@ -101,6 +102,14 @@ async function persistActiveResult(
     .map((f) => (f.evidence as { url?: unknown })?.url)
     .filter((u): u is string => typeof u === 'string' && u.length > 0);
   const assetValues = [...new Set([...result.assets, ...endpointUrls])];
+
+  // One ScanRun per scan groups its findings in the UI.
+  const run = await prisma.scanRun.create({
+    data: {
+      programId, target: result.target, tier,
+      findingsCount: realFindings.length, assetsCount: assetValues.length,
+    },
+  });
 
   // Bulk insert — one round-trip each, not one per row.
   if (assetValues.length > 0) {
@@ -115,6 +124,7 @@ async function persistActiveResult(
     await prisma.finding.createMany({
       data: realFindings.map((f) => ({
         programId,
+        scanRunId: run.id,
         title: f.title,
         vulnClass: f.vulnClass,
         severity: f.severity,
@@ -131,7 +141,7 @@ async function persistActiveResult(
     action: 'scan.results',
     programId,
     target: result.target,
-    detail: { assets: assetValues.length, findings: realFindings.length, endpointsRerouted: endpointUrls.length },
+    detail: { scanRunId: run.id, assets: assetValues.length, findings: realFindings.length, endpointsRerouted: endpointUrls.length },
   });
 }
 

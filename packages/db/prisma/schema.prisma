@@ -88,6 +88,7 @@ model Program {
   preauths   PreAuthorization[]
   autoSubmit AutoSubmitPolicy?
   findings   Finding[]
+  scanRuns   ScanRun[]
   scanContext ScanContext?
 
   createdAt DateTime @default(now())
@@ -163,10 +164,31 @@ model Finding {
   dupRisk        Float // 0..1 from dup assessor
   evidence       Json // request/response, artifacts
   target         String? // host/URL the scan hit (set by active scans)
+  scanRun        ScanRun? @relation(fields: [scanRunId], references: [id])
+  scanRunId      String? // the scan that produced this finding (groups the list)
   chainOf        String[] // component finding ids
   humanConfirmed Boolean  @default(false)
   report         Report?
   createdAt      DateTime @default(now())
+
+  @@index([scanRunId])
+}
+
+// One active scan of one target — groups the findings it produced so the
+// Findings list shows a result per scan, not thousands of loose rows.
+model ScanRun {
+  id            String    @id @default(cuid())
+  program       Program   @relation(fields: [programId], references: [id])
+  programId     String
+  target        String
+  tier          Int
+  findingsCount Int       @default(0)
+  assetsCount   Int       @default(0)
+  findings      Finding[]
+  createdAt     DateTime  @default(now())
+
+  @@index([programId])
+  @@index([createdAt])
 }
 
 // Optional per-program scan context passed to Infiltr for checks that need a
