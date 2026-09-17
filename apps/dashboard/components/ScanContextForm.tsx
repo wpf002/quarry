@@ -10,6 +10,7 @@ type Initial = {
   authUserField: string | null;
   authPassField: string | null;
   authCsrfField: string | null;
+  authExtraFields: Record<string, string> | null;
   authTokenPath: string | null;
   authJson: boolean;
   hasAuthPassword: boolean;
@@ -20,6 +21,22 @@ type Initial = {
   ssrfCanaryHost: string | null;
   ssrfWait: number | null;
 };
+
+function parseKV(text: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of text.split('\n')) {
+    const i = line.indexOf('=');
+    if (i > 0) {
+      const k = line.slice(0, i).trim();
+      const v = line.slice(i + 1).trim();
+      if (k) out[k] = v;
+    }
+  }
+  return out;
+}
+function kvToLines(o: Record<string, string> | null): string {
+  return o ? Object.entries(o).map(([k, v]) => `${k}=${v}`).join('\n') : '';
+}
 
 function parseHeaders(text: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -45,6 +62,7 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
   const [userField, setUserField] = useState(initial.authUserField ?? '');
   const [passField, setPassField] = useState(initial.authPassField ?? '');
   const [csrfField, setCsrfField] = useState(initial.authCsrfField ?? '');
+  const [extraFields, setExtraFields] = useState(kvToLines(initial.authExtraFields));
   const [tokenPath, setTokenPath] = useState(initial.authTokenPath ?? '');
   const [json, setJson] = useState(initial.authJson);
   // fallbacks
@@ -79,6 +97,7 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
       authUserField: userField || null,
       authPassField: passField || null,
       authCsrfField: csrfField || null,
+      authExtraFields: parseKV(extraFields),
       authTokenPath: tokenPath || null,
       authJson: json,
       idorVictimId: victimId || null,
@@ -99,7 +118,8 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
       const payload: Record<string, unknown> = {
         by: 'will', authLoginUrl: loginUrl || null, authUsername: username || null,
         authUserField: userField || null, authPassField: passField || null,
-        authCsrfField: csrfField || null, authTokenPath: tokenPath || null, authJson: json,
+        authCsrfField: csrfField || null, authExtraFields: parseKV(extraFields),
+        authTokenPath: tokenPath || null, authJson: json,
       };
       if (password) payload.authPassword = password;
       await apiPost(`/programs/${programId}/scan-context`, payload);
@@ -150,6 +170,10 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
           </label>
           <label style={lbl}>CSRF field (hidden input)
             <input className="input" value={csrfField} onChange={(e) => setCsrfField(e.target.value)} placeholder="user_token" style={{ marginTop: 4 }} />
+          </label>
+          <label style={{ ...lbl, gridColumn: '1 / -1' }}>Extra login fields (one <code>key=value</code> per line — submit buttons, hidden inputs)
+            <textarea className="input" rows={2} value={extraFields} onChange={(e) => setExtraFields(e.target.value)}
+              placeholder={'Login=Login'} style={{ marginTop: 4, fontFamily: 'var(--mono)', fontSize: 12, width: '100%' }} />
           </label>
           <label style={lbl}>Token JSON path (API login)
             <input className="input" value={tokenPath} onChange={(e) => setTokenPath(e.target.value)} placeholder="data.token" style={{ marginTop: 4 }} />

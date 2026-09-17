@@ -184,6 +184,7 @@ model ScanContext {
   authUserField     String? // login form field for the username (default "username")
   authPassField     String? // login form field for the password (default "password")
   authCsrfField     String? // hidden CSRF field to lift from a GET first (optional)
+  authExtraFields   Json? // static form fields sent with the login, e.g. {"Login":"Login"}
   authTokenPath     String? // dot-path to a bearer token in a JSON login response (optional)
   authJson          Boolean  @default(false) // send credentials as JSON instead of form
   authCachedAt      DateTime? // when the cached session was captured

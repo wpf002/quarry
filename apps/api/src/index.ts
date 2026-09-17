@@ -225,15 +225,16 @@ async function loadScanContext(programId: string) {
 // refuses unless the target is on a live allowlist under a valid approval.
 app.post('/programs/:id/scan-target', async (req, reply) => {
   const { id } = req.params as { id: string };
-  const { target, tier } = (req.body ?? {}) as { target?: string; tier?: number };
+  const { target, tier, tools } = (req.body ?? {}) as { target?: string; tier?: number; tools?: string[] };
   if (!target) return reply.code(400).send({ error: 'target required' });
-  const t = tier === 2 ? 2 : 1;
+  const t: 1 | 2 = tier === 2 ? 2 : 1;
+  const profile = { tiers: [t] as (1 | 2)[], ...(Array.isArray(tools) && tools.length > 0 ? { tools } : {}) };
   try {
     // Refresh the auto-login session (no-op if not configured) before scanning.
     try { await ensureSession(id); }
     catch (e) { if (e instanceof LoginError) return reply.code(400).send({ error: `auto-login failed: ${e.message}` }); throw e; }
     const context = await loadScanContext(id);
-    const result = await runActiveScan({ programId: id, target, tier: t, profile: { tiers: [t] }, context });
+    const result = await runActiveScan({ programId: id, target, tier: t, profile, context });
     return { ok: true, assets: result.assets.length, findings: result.findings.length };
   } catch (e) {
     if (e instanceof KillSwitchEngaged) return reply.code(409).send({ error: 'kill switch engaged' });
@@ -266,12 +267,13 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
     authCsrfField?: string | null;
     authTokenPath?: string | null;
     authJson?: boolean;
+    authExtraFields?: Record<string, string> | null;
   };
   if (!b.by) return reply.code(400).send({ error: 'by required' });
 
   // Changing login config invalidates any cached session so the next scan re-auths.
   const loginTouched = ['authLoginUrl', 'authUsername', 'authPassword', 'authUserField',
-    'authPassField', 'authCsrfField', 'authTokenPath', 'authJson'].some((k) => k in b);
+    'authPassField', 'authCsrfField', 'authTokenPath', 'authJson', 'authExtraFields'].some((k) => k in b);
 
   const data = {
     idorVictimId: b.idorVictimId ?? null,
@@ -284,6 +286,7 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
     ...(b.authUserField !== undefined ? { authUserField: b.authUserField ?? null } : {}),
     ...(b.authPassField !== undefined ? { authPassField: b.authPassField ?? null } : {}),
     ...(b.authCsrfField !== undefined ? { authCsrfField: b.authCsrfField ?? null } : {}),
+    ...(b.authExtraFields !== undefined ? { authExtraFields: b.authExtraFields ?? undefined } : {}),
     ...(b.authTokenPath !== undefined ? { authTokenPath: b.authTokenPath ?? null } : {}),
     ...(typeof b.authJson === 'boolean' ? { authJson: b.authJson } : {}),
     ...(loginTouched ? { authCachedAt: null } : {}),

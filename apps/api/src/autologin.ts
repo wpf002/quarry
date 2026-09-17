@@ -15,6 +15,7 @@ export interface LoginConfig {
   csrfField?: string;
   tokenPath?: string;
   json?: boolean;
+  extra?: Record<string, string>; // static form fields (submit buttons, hidden inputs)
 }
 
 const SESSION_TTL_MS = 30 * 60 * 1000; // re-auth every 30 min
@@ -60,6 +61,7 @@ export async function performLogin(cfg: LoginConfig): Promise<Record<string, str
   const fields: Record<string, string> = {
     [cfg.userField || 'username']: cfg.username,
     [cfg.passField || 'password']: cfg.password,
+    ...(cfg.extra ?? {}),
     ...(csrf && cfg.csrfField ? { [cfg.csrfField]: csrf } : {}),
   };
   const headers: Record<string, string> = { cookie: cookieHeader(jar) };
@@ -110,6 +112,7 @@ export async function ensureSession(programId: string, force = false): Promise<R
     csrfField: c.authCsrfField ?? undefined,
     tokenPath: c.authTokenPath ?? undefined,
     json: c.authJson,
+    extra: (c.authExtraFields ?? undefined) as Record<string, string> | undefined,
   });
   await prisma.scanContext.update({
     where: { programId },

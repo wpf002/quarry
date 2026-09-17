@@ -88,6 +88,7 @@ export default async function ProgramDetail({
             authUserField: program.scanContext?.authUserField ?? null,
             authPassField: program.scanContext?.authPassField ?? null,
             authCsrfField: program.scanContext?.authCsrfField ?? null,
+            authExtraFields: (program.scanContext?.authExtraFields as Record<string, string> | null) ?? null,
             authTokenPath: program.scanContext?.authTokenPath ?? null,
             authJson: program.scanContext?.authJson ?? false,
             hasAuthPassword: !!program.scanContext?.authPassword,
