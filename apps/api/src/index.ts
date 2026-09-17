@@ -7,7 +7,7 @@ import {
   evaluate as evaluateMatch,
 } from '@quarry/core';
 import { recordOutcome, recomputeProgramScore } from '@quarry/feedback';
-import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signEnvelope, pauseEnvelope, EnvelopeRefusal, liveVerify } from '@quarry/autonomy';
+import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signCampaign, pauseCampaign, CampaignRefusal, liveVerify } from '@quarry/autonomy';
 
 const app = Fastify({ logger: true });
 
@@ -133,32 +133,32 @@ app.post('/programs/:id/approve-scan', async (req, reply) => {
   }
 });
 
-// --- L5: policy envelope (autopilot) --------------------------------------
-app.post('/envelopes', async (req, reply) => {
+// --- L5: campaign (autopilot) --------------------------------------
+app.post('/campaigns', async (req, reply) => {
   const b = (req.body ?? {}) as { programIds?: string[]; signedBy?: string; days?: number; tiers?: number[]; autoSubmit?: boolean; maxTargetsPerDay?: number; rateLimitPerMin?: number; dailyBudgetUsd?: number; minConfidence?: number; maxDupRisk?: number; dailyCap?: number };
   if (!b.signedBy || !Array.isArray(b.programIds) || b.programIds.length === 0) {
     return reply.code(400).send({ error: 'signedBy and programIds[] required' });
   }
   try {
     const expiresAt = b.days ? new Date(Date.now() + b.days * 86_400_000) : undefined;
-    const res = await signEnvelope(b.programIds, b.signedBy, {
+    const res = await signCampaign(b.programIds, b.signedBy, {
       expiresAt, tiers: b.tiers, autoSubmit: b.autoSubmit,
       maxTargetsPerDay: b.maxTargetsPerDay, rateLimitPerMin: b.rateLimitPerMin, dailyBudgetUsd: b.dailyBudgetUsd,
       minConfidence: b.minConfidence, maxDupRisk: b.maxDupRisk, dailyCap: b.dailyCap,
     });
     return { ok: true, ...res };
   } catch (e) {
-    if (e instanceof EnvelopeRefusal) return reply.code(409).send({ error: e.message });
+    if (e instanceof CampaignRefusal) return reply.code(409).send({ error: e.message });
     req.log.error(e);
     return reply.code(500).send({ error: 'sign failed' });
   }
 });
 
-app.post('/envelopes/:id/pause', async (req, reply) => {
+app.post('/campaigns/:id/pause', async (req, reply) => {
   const { id } = req.params as { id: string };
   const { by, reason } = (req.body ?? {}) as { by?: string; reason?: string };
   if (!by) return reply.code(400).send({ error: 'by required' });
-  await pauseEnvelope(id, reason ?? 'manual pause', by);
+  await pauseCampaign(id, reason ?? 'manual pause', by);
   return { ok: true };
 });
 

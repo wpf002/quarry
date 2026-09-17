@@ -5,17 +5,17 @@ import { grantPreAuthorization, revokePreAuthorization, ttlHoursUntil } from './
 import { runAutoScans } from './scheduler.js';
 import { runAutoSubmit, NEVER_AUTOSUBMIT } from './autosubmit.js';
 
-export class EnvelopeRefusal extends Error {}
+export class CampaignRefusal extends Error {}
 
-export interface EnvelopeLiveness {
+export interface CampaignLiveness {
   live: boolean;
   reason?: string;
 }
 
-export function evaluateEnvelope(
+export function evaluateCampaign(
   env: { paused: boolean; expiresAt: Date },
   now: Date,
-): EnvelopeLiveness {
+): CampaignLiveness {
   if (env.paused) return { live: false, reason: 'paused' };
   if (env.expiresAt.getTime() <= now.getTime()) return { live: false, reason: 'expired' };
   return { live: true };
@@ -34,7 +34,7 @@ export interface AutopilotTrigger {
   reason?: string;
 }
 
-// Any one of these halts the whole envelope. Fails toward pausing.
+// Any one of these halts the whole campaign. Fails toward pausing.
 export function autopilotTriggers(m: AutopilotMetrics): AutopilotTrigger {
   if (m.tier3Discovered > 0) return { pause: true, reason: `${m.tier3Discovered} tier-3-class finding(s) — needs a human` };
   if (m.policyChanged) return { pause: true, reason: 'program policy changed' };
@@ -43,7 +43,7 @@ export function autopilotTriggers(m: AutopilotMetrics): AutopilotTrigger {
   return { pause: false };
 }
 
-export interface SignEnvelopeOpts {
+export interface SignCampaignOpts {
   tiers?: number[];
   expiresAt?: Date;
   maxTargetsPerDay?: number;
@@ -56,17 +56,17 @@ export interface SignEnvelopeOpts {
   now?: Date;
 }
 
-// Sign an envelope over a set of programs. Pre-validates every program is
+// Sign an campaign over a set of programs. Pre-validates every program is
 // gate-ready and ownership-verified (fail-closed for the whole set), then
 // provisions L2 pre-authorizations and, if enabled, L3 auto-submit policies,
-// all aligned to the envelope expiry.
-export async function signEnvelope(
+// all aligned to the campaign expiry.
+export async function signCampaign(
   programIds: string[],
   signedBy: string,
-  opts: SignEnvelopeOpts = {},
+  opts: SignCampaignOpts = {},
 ): Promise<{ id: string; expiresAt: Date }> {
-  if (!signedBy) throw new EnvelopeRefusal('signedBy required');
-  if (!programIds.length) throw new EnvelopeRefusal('at least one program required');
+  if (!signedBy) throw new CampaignRefusal('signedBy required');
+  if (!programIds.length) throw new CampaignRefusal('at least one program required');
   const now = opts.now ?? new Date();
   const expiresAt = opts.expiresAt ?? new Date(now.getTime() + 7 * 86_400_000);
   const tiers = (opts.tiers ?? [1, 2]).filter((t) => t === 1 || t === 2);
@@ -74,10 +74,10 @@ export async function signEnvelope(
   // Pre-validate ALL programs before provisioning any.
   for (const programId of programIds) {
     const program = await prisma.program.findUniqueOrThrow({ where: { id: programId } });
-    if (program.ambiguityFlags.length > 0) throw new EnvelopeRefusal(`${program.handle}: ambiguity flags remain`);
+    if (program.ambiguityFlags.length > 0) throw new CampaignRefusal(`${program.handle}: ambiguity flags remain`);
     const allowlist = await prisma.allowlist.findMany({ where: { programId, active: true } });
-    if (allowlist.length === 0) throw new EnvelopeRefusal(`${program.handle}: allowlist empty`);
-    if (allowlist.some((e) => !e.ownershipVerified)) throw new EnvelopeRefusal(`${program.handle}: unverified allowlist entries`);
+    if (allowlist.length === 0) throw new CampaignRefusal(`${program.handle}: allowlist empty`);
+    if (allowlist.some((e) => !e.ownershipVerified)) throw new CampaignRefusal(`${program.handle}: unverified allowlist entries`);
   }
 
   // Provision.
@@ -97,7 +97,7 @@ export async function signEnvelope(
     }
   }
 
-  const env = await prisma.policyEnvelope.create({
+  const env = await prisma.campaign.create({
     data: {
       signedBy, programIds, tiers, expiresAt,
       maxTargetsPerDay: opts.maxTargetsPerDay ?? 25,
@@ -109,34 +109,34 @@ export async function signEnvelope(
       dailyCap: opts.dailyCap ?? 3,
     },
   });
-  await audit({ actor: `human:${signedBy}`, action: 'envelope.sign', detail: { envelopeId: env.id, programIds, tiers, autoSubmit: env.autoSubmit, expiresAt: expiresAt.toISOString() } });
+  await audit({ actor: `human:${signedBy}`, action: 'campaign.sign', detail: { campaignId: env.id, programIds, tiers, autoSubmit: env.autoSubmit, expiresAt: expiresAt.toISOString() } });
   return { id: env.id, expiresAt };
 }
 
-// Pause an envelope: stop the autopilot AND revoke its programs' standing auths
+// Pause an campaign: stop the autopilot AND revoke its programs' standing auths
 // and auto-submit. Nothing keeps running once paused.
-export async function pauseEnvelope(id: string, reason: string, by = 'system'): Promise<void> {
-  const env = await prisma.policyEnvelope.update({ where: { id }, data: { paused: true, pausedReason: reason } });
+export async function pauseCampaign(id: string, reason: string, by = 'system'): Promise<void> {
+  const env = await prisma.campaign.update({ where: { id }, data: { paused: true, pausedReason: reason } });
   const preauths = await prisma.preAuthorization.findMany({ where: { programId: { in: env.programIds }, revoked: false } });
-  for (const p of preauths) await revokePreAuthorization(p.id, `envelope paused: ${reason}`);
+  for (const p of preauths) await revokePreAuthorization(p.id, `campaign paused: ${reason}`);
   await prisma.autoSubmitPolicy.updateMany({ where: { programId: { in: env.programIds } }, data: { enabled: false } });
-  await audit({ actor: by === 'system' ? 'autopilot' : `human:${by}`, action: 'envelope.pause', detail: { envelopeId: id, reason } });
+  await audit({ actor: by === 'system' ? 'autopilot' : `human:${by}`, action: 'campaign.pause', detail: { campaignId: id, reason } });
 }
 
-export async function liveEnvelopes(now: Date) {
-  return prisma.policyEnvelope.findMany({ where: { paused: false, expiresAt: { gt: now } } });
+export async function liveCampaigns(now: Date) {
+  return prisma.campaign.findMany({ where: { paused: false, expiresAt: { gt: now } } });
 }
 
-// The lights-out loop. Per live envelope: check pause triggers; if clear, the
+// The lights-out loop. Per live campaign: check pause triggers; if clear, the
 // shared executors run scans + submits (which act on the provisioned preauths /
 // policies). Each target still passes the per-target gate + kill switch.
 export async function runAutopilot(
   deps: { now?: Date; certFetcher?: import('./provenance.js').CertFetcher } = {},
-): Promise<Array<{ envelopeId: string; paused?: string }>> {
+): Promise<Array<{ campaignId: string; paused?: string }>> {
   const now = deps.now ?? new Date();
-  const out: Array<{ envelopeId: string; paused?: string }> = [];
+  const out: Array<{ campaignId: string; paused?: string }> = [];
 
-  for (const env of await liveEnvelopes(now)) {
+  for (const env of await liveCampaigns(now)) {
     const tier3Discovered = (
       await prisma.finding.findMany({
         where: { programId: { in: env.programIds }, createdAt: { gt: env.createdAt } },
@@ -157,16 +157,16 @@ export async function runAutopilot(
 
     const trig = autopilotTriggers({ oosHits: 0, tier3Discovered, policyChanged, validRate: stats.validRate, sample: stats.decided });
     if (trig.pause) {
-      await pauseEnvelope(env.id, trig.reason ?? 'autopilot trigger');
-      out.push({ envelopeId: env.id, paused: trig.reason });
+      await pauseCampaign(env.id, trig.reason ?? 'autopilot trigger');
+      out.push({ campaignId: env.id, paused: trig.reason });
     } else {
-      out.push({ envelopeId: env.id });
+      out.push({ campaignId: env.id });
     }
   }
 
   // Shared executors act on whatever authorizations remain live.
   await runAutoScans({ certFetcher: deps.certFetcher });
   await runAutoSubmit({ now });
-  await audit({ actor: 'autopilot', action: 'autopilot.run', detail: { envelopes: out.length } });
+  await audit({ actor: 'autopilot', action: 'autopilot.run', detail: { campaigns: out.length } });
   return out;
 }

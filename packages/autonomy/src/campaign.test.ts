@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateEnvelope, autopilotTriggers } from './envelope.js';
+import { evaluateCampaign, autopilotTriggers } from './campaign.js';
 
-test('envelope liveness: paused or expired is not live', () => {
+test('campaign liveness: paused or expired is not live', () => {
   const now = new Date('2026-06-01T00:00:00Z');
-  assert.equal(evaluateEnvelope({ paused: false, expiresAt: new Date('2026-06-08T00:00:00Z') }, now).live, true);
-  assert.equal(evaluateEnvelope({ paused: true, expiresAt: new Date('2026-06-08T00:00:00Z') }, now).live, false);
-  assert.equal(evaluateEnvelope({ paused: false, expiresAt: new Date('2026-05-31T00:00:00Z') }, now).live, false);
+  assert.equal(evaluateCampaign({ paused: false, expiresAt: new Date('2026-06-08T00:00:00Z') }, now).live, true);
+  assert.equal(evaluateCampaign({ paused: true, expiresAt: new Date('2026-06-08T00:00:00Z') }, now).live, false);
+  assert.equal(evaluateCampaign({ paused: false, expiresAt: new Date('2026-05-31T00:00:00Z') }, now).live, false);
 });
 
 test('autopilot pauses on tier-3 discovery', () => {

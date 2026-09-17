@@ -2,15 +2,15 @@ import Link from 'next/link';
 import { prisma, safe } from '../../lib/db';
 import { EmptyState } from '../../components/ui';
 import { KillSwitch } from '../../components/KillSwitch';
-import { SignEnvelope } from '../../components/SignEnvelope';
-import { PauseEnvelope } from '../../components/PauseEnvelope';
+import { SignCampaign } from '../../components/SignCampaign';
+import { PauseCampaign } from '../../components/PauseCampaign';
 import { RevokePreauth } from '../../components/RevokePreauth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Autopilot() {
-  const [envelopes, programs, preauths, approvals, killRow] = await Promise.all([
-    safe(() => prisma.policyEnvelope.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }), [] as any[]),
+  const [campaigns, programs, preauths, approvals, killRow] = await Promise.all([
+    safe(() => prisma.campaign.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }), [] as any[]),
     safe(() => prisma.program.findMany({ include: { allowlist: { where: { active: true }, select: { ownershipVerified: true } } }, take: 300 }), [] as any[]),
     safe(() => prisma.preAuthorization.findMany({ orderBy: { createdAt: 'desc' }, include: { program: true }, take: 100 }), [] as any[]),
     safe(() => prisma.scanApproval.findMany({ orderBy: { createdAt: 'desc' }, include: { program: true, allowlist: true }, take: 100 }), [] as any[]),
@@ -37,11 +37,11 @@ export default async function Autopilot() {
 
       <div style={{ marginBottom: 18 }}><KillSwitch initialEngaged={killed} /></div>
 
-      <SignEnvelope eligible={eligible} />
+      <SignCampaign eligible={eligible} />
 
-      <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Envelopes</h3>
-      {envelopes.length === 0 ? (
-        <EmptyState title="No Envelopes Signed">Sign one above to run the autopilot.</EmptyState>
+      <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Campaigns</h3>
+      {campaigns.length === 0 ? (
+        <EmptyState title="No Campaigns Signed">Sign one above to run the autopilot.</EmptyState>
       ) : (
         <div className="table-wrap" style={{ marginBottom: 26 }}>
           <table className="table">
@@ -49,7 +49,7 @@ export default async function Autopilot() {
               <tr><th>Status</th><th>Programs</th><th>Tiers</th><th>Auto-Submit</th><th>Expires</th><th></th></tr>
             </thead>
             <tbody>
-              {envelopes.map((e) => {
+              {campaigns.map((e) => {
                 const expired = new Date(e.expiresAt).getTime() < now;
                 const live = !e.paused && !expired;
                 return (
@@ -64,7 +64,7 @@ export default async function Autopilot() {
                     <td className="mono">{(e.tiers ?? []).join(', ')}</td>
                     <td>{e.autoSubmit ? <span className="pill pill-warn">on</span> : <span className="pill pill-muted">off</span>}</td>
                     <td className="mono" style={{ color: 'var(--faint)' }}>{new Date(e.expiresAt).toISOString().slice(0, 16).replace('T', ' ')}</td>
-                    <td style={{ textAlign: 'right' }}>{live && <PauseEnvelope id={e.id} />}</td>
+                    <td style={{ textAlign: 'right' }}>{live && <PauseCampaign id={e.id} />}</td>
                   </tr>
                 );
               })}
@@ -75,7 +75,7 @@ export default async function Autopilot() {
 
       <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Standing Authorizations</h3>
       {preauths.length === 0 ? (
-        <EmptyState title="No Standing Authorizations">Sign an envelope, or authorize a single program from its page.</EmptyState>
+        <EmptyState title="No Standing Authorizations">Sign an campaign, or authorize a single program from its page.</EmptyState>
       ) : (
         <div className="table-wrap" style={{ marginBottom: 26 }}>
           <table className="table">
@@ -110,7 +110,7 @@ export default async function Autopilot() {
 
       <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Scan Approvals</h3>
       {approvals.length === 0 ? (
-        <EmptyState title="No Approvals Yet">Approvals are created when you approve a program or sign an envelope.</EmptyState>
+        <EmptyState title="No Approvals Yet">Approvals are created when you approve a program or sign an campaign.</EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="table">

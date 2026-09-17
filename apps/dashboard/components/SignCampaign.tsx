@@ -5,7 +5,7 @@ import { apiPost } from '../lib/api';
 
 type Eligible = { id: string; handle: string };
 
-export function SignEnvelope({ eligible }: { eligible: Eligible[] }) {
+export function SignCampaign({ eligible }: { eligible: Eligible[] }) {
   const router = useRouter();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [autoSubmit, setAutoSubmit] = useState(false);
@@ -23,7 +23,7 @@ export function SignEnvelope({ eligible }: { eligible: Eligible[] }) {
   const sign = async () => {
     setBusy(true); setErr(null); setMsg(null);
     try {
-      const r = await apiPost<{ expiresAt: string }>('/envelopes', {
+      const r = await apiPost<{ expiresAt: string }>('/campaigns', {
         programIds: [...sel], signedBy: 'will', days: Number(days), autoSubmit,
       });
       setMsg(`Signed — expires ${new Date(r.expiresAt).toISOString().slice(0, 16).replace('T', ' ')}.`);
@@ -35,10 +35,10 @@ export function SignEnvelope({ eligible }: { eligible: Eligible[] }) {
 
   return (
     <div className="card">
-      <h3 style={{ fontSize: 15, marginBottom: 4 }}>Sign a New Envelope</h3>
+      <h3 style={{ fontSize: 15, marginBottom: 4 }}>Sign a New Campaign</h3>
       <div className="page-sub" style={{ marginBottom: 12 }}>
         Only programs with a verified allowlist show up here. Signing runs them
-        until the envelope expires or a breaker trips.
+        until the campaign expires or a breaker trips.
       </div>
       {eligible.length === 0 ? (
         <div style={{ color: 'var(--faint)' }}>No eligible programs. Verify allowlists first.</div>
@@ -60,7 +60,7 @@ export function SignEnvelope({ eligible }: { eligible: Eligible[] }) {
               expires in <input className="input" value={days} onChange={(e) => setDays(e.target.value.replace(/[^\d]/g, ''))} style={{ width: 60 }} /> days
             </label>
             <button className="btn btn-primary" disabled={busy || sel.size === 0} onClick={sign}>
-              {busy ? 'Signing…' : `Sign Envelope (${sel.size})`}
+              {busy ? 'Signing…' : `Sign Campaign (${sel.size})`}
             </button>
           </div>
           {msg && <div className="zap" style={{ fontSize: 13, marginTop: 10 }}>{msg}</div>}

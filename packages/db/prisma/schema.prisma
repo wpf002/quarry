@@ -221,11 +221,11 @@ model AutoSubmitPolicy {
   updatedAt          DateTime @updatedAt
 }
 
-// L5 policy envelope. A human signs it (weekly/monthly). Inside a live, unpaused
-// envelope the autopilot runs scan + auto-submit for its programs with no
+// L5 campaign. A human signs it (weekly/monthly). Inside a live, unpaused
+// campaign the autopilot runs scan + auto-submit for its programs with no
 // further input. Expired, paused, or unsigned -> nothing runs. Enforced like the
 // gate: fail-closed and audited.
-model PolicyEnvelope {
+model Campaign {
   id               String   @id @default(cuid())
   signedBy         String
   programIds       String[]
@@ -241,6 +241,8 @@ model PolicyEnvelope {
   paused           Boolean  @default(false)
   pausedReason     String?
   createdAt        DateTime @default(now())
+
+  @@map("PolicyEnvelope")
 }
 
 // Append-only trail. Every scope verdict and every active action lands here.

@@ -79,11 +79,11 @@ async function tick() {
     }
 
     // L5 autopilot — OFF unless enabled. Runs scan + submit for programs inside
-    // a live, signed envelope; pause triggers halt the whole envelope.
+    // a live, signed campaign; pause triggers halt the whole campaign.
     if ((process.env.QUARRY_AUTOPILOT ?? '').toLowerCase() === 'on') {
       const env = await runAutopilot({ certFetcher: liveCertFetcher });
       for (const e of env) {
-        if (e.paused) console.log(`[autopilot] envelope ${e.envelopeId} paused: ${e.paused}`);
+        if (e.paused) console.log(`[autopilot] campaign ${e.campaignId} paused: ${e.paused}`);
       }
     }
   } catch (e) {
