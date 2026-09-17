@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { prisma, safe } from '../../lib/db';
 import { EmptyState } from '../../components/ui';
+import { KillSwitch } from '../../components/KillSwitch';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,15 @@ export default async function ApprovalsPage() {
       }),
     [] as any[],
   );
+  const killRow = await safe(
+    () =>
+      prisma.auditLog.findFirst({
+        where: { actor: 'operator', action: { in: ['killswitch.on', 'killswitch.off'] } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    null,
+  );
+  const killed = killRow?.action === 'killswitch.on';
   const now = Date.now();
 
   return (
@@ -26,6 +36,10 @@ export default async function ApprovalsPage() {
             Expired approvals cannot scan.
           </div>
         </div>
+      </div>
+
+      <div style={{ marginBottom: 18 }}>
+        <KillSwitch initialEngaged={killed} />
       </div>
 
       {approvals.length === 0 ? (

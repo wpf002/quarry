@@ -131,6 +131,30 @@ app.post('/programs/:id/approve-scan', async (req, reply) => {
   }
 });
 
+// --- audit trail ----------------------------------------------------------
+app.get('/audit', async (req) => {
+  const limit = Math.min(Number((req.query as any)?.limit ?? 100), 500);
+  return prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: limit });
+});
+
+// --- global kill switch ---------------------------------------------------
+// Engaging it halts ALL active work immediately (recon-active checks it before
+// every target). Stored as an append-only AuditLog sentinel.
+app.get('/killswitch', async () => {
+  const latest = await prisma.auditLog.findFirst({
+    where: { actor: 'operator', action: { in: ['killswitch.on', 'killswitch.off'] } },
+    orderBy: { createdAt: 'desc' },
+  });
+  return { engaged: latest?.action === 'killswitch.on' };
+});
+
+app.post('/killswitch', async (req, reply) => {
+  const { on, by } = (req.body ?? {}) as { on?: boolean; by?: string };
+  if (typeof on !== 'boolean' || !by) return reply.code(400).send({ error: 'on (boolean) and by required' });
+  await audit({ actor: 'operator', action: on ? 'killswitch.on' : 'killswitch.off', detail: { by } });
+  return { engaged: on };
+});
+
 const port = Number(process.env.PORT ?? 3001);
 app.listen({ port, host: '0.0.0.0' }).catch((e) => {
   app.log.error(e);
