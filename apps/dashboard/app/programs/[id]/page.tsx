@@ -15,7 +15,10 @@ export default async function ProgramDetail({
     () =>
       prisma.program.findUnique({
         where: { id },
-        include: { allowlist: { orderBy: { createdAt: 'desc' } } },
+        include: {
+          allowlist: { orderBy: { createdAt: 'desc' } },
+          assets: { orderBy: { createdAt: 'desc' }, take: 60 },
+        },
       }),
     null,
   );
@@ -91,6 +94,22 @@ export default async function ProgramDetail({
             <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--muted)', fontSize: 12.5, margin: 0, fontFamily: 'var(--mono)' }}>
               {program.policyRaw || '—'}
             </pre>
+          </div>
+          <div className="card">
+            <h3 style={{ fontSize: 15, marginBottom: 4 }}>Attack surface</h3>
+            <div className="page-sub" style={{ marginBottom: 12 }}>
+              {program.assets.length} asset(s) from passive recon. All default
+              out-of-scope until allowlisted.
+            </div>
+            {program.assets.length === 0 ? (
+              <div style={{ color: 'var(--faint)' }}>No assets discovered yet.</div>
+            ) : (
+              <div className="chip-row">
+                {program.assets.map((a) => (
+                  <span key={a.id} className="tag" title={a.source}>{a.value}</span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

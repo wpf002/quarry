@@ -1,4 +1,5 @@
 import { prisma, safe } from '../../lib/db';
+import Link from 'next/link';
 import { SeverityPill, Meter, EmptyState } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -54,11 +55,13 @@ export default async function Findings() {
                 return (
                   <tr key={f.id}>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{f.title}</div>
-                      <div className="page-sub" style={{ marginTop: 2 }}>
-                        <span className="tag">{f.vulnClass}</span>{' '}
-                        <span className="tag">{f.program?.handle}</span>
-                      </div>
+                      <Link href={`/findings/${f.id}`}>
+                        <div style={{ fontWeight: 600 }}>{f.title}</div>
+                        <div className="page-sub" style={{ marginTop: 2 }}>
+                          <span className="tag">{f.vulnClass}</span>{' '}
+                          <span className="tag">{f.program?.handle}</span>
+                        </div>
+                      </Link>
                     </td>
                     <td><SeverityPill severity={f.severity} /></td>
                     <td><Meter value={f.confidence} /></td>

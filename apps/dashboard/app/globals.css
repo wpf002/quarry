@@ -1,24 +1,26 @@
 :root {
-  /* surfaces */
-  --bg: #0a0d14;
-  --panel: #10141d;
-  --panel-2: #141a25;
-  --border: #1e2634;
-  --border-strong: #2a3444;
+  /* bug-zapper night: deep dark, electric-green "zap", hazard amber, toxic purple */
+  --bg: #070a0e;
+  --panel: #0d1218;
+  --panel-2: #121a22;
+  --border: #1c2530;
+  --border-strong: #2b3846;
 
   /* text */
-  --text: #e7ecf3;
-  --muted: #8a94a6;
-  --faint: #5b6577;
+  --text: #eaf2e8;
+  --muted: #8b98a2;
+  --faint: #58636e;
 
   /* accent + semantic */
-  --accent: #4ade80;
-  --accent-dim: #1b3a2a;
-  --info: #60a5fa;
-  --warn: #fbbf24;
-  --danger: #f87171;
-  --critical: #fb7185;
+  --accent: #9dff3c;        /* bug-zapper zap green */
+  --accent-2: #b14dff;      /* toxic purple */
+  --accent-dim: #172a0c;    /* dark zap glow bg */
+  --info: #38bdf8;
+  --warn: #ffb020;          /* hazard amber */
+  --danger: #ff5c7a;
+  --critical: #ff3860;
 
+  --glow: 0 0 20px rgba(157, 255, 60, 0.18);
   --radius: 10px;
   --radius-sm: 7px;
   --sp: 8px;
@@ -30,7 +32,11 @@
 * { box-sizing: border-box; }
 html, body { padding: 0; margin: 0; }
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(900px 500px at 78% -8%, rgba(157, 255, 60, 0.07), transparent 60%),
+    radial-gradient(700px 460px at 5% 4%, rgba(177, 77, 255, 0.06), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
@@ -51,12 +57,15 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 }
 .brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 18px; }
 .brand-mark {
-  width: 26px; height: 26px; border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), #16a34a);
-  display: grid; place-items: center; color: #04120a; font-weight: 800;
-  font-size: 15px;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #4fd12a 55%, var(--accent-2));
+  display: grid; place-items: center; color: #06140a;
+  box-shadow: var(--glow); flex: none;
 }
-.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.02em; }
+.brand-mark svg { width: 18px; height: 18px; }
+.brand-name { font-weight: 800; font-size: 15px; letter-spacing: -0.02em; line-height: 1; }
+.brand-tag { font-family: var(--mono); font-size: 9px; letter-spacing: 0.22em;
+  color: var(--accent); text-transform: uppercase; margin-top: 3px; opacity: .85; }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border-radius: var(--radius-sm);
@@ -117,7 +126,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 /* score bar */
 .score { display: flex; align-items: center; gap: 8px; min-width: 120px; }
 .score-track { flex: 1; height: 6px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
-.score-fill { height: 100%; background: linear-gradient(90deg, #16a34a, var(--accent)); border-radius: 999px; }
+.score-fill { height: 100%; background: linear-gradient(90deg, #4fd12a, var(--accent)); border-radius: 999px; box-shadow: 0 0 8px rgba(157,255,60,.4); }
 .score-num { font-family: var(--mono); font-size: 12px; color: var(--text); width: 34px; text-align: right; }
 
 /* empty state */
@@ -148,7 +157,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn-primary { background: var(--accent); color: #04120a; border-color: var(--accent); }
-.btn-primary:hover:not(:disabled) { background: #6ee79b; }
+.btn-primary:hover:not(:disabled) { background: #b6ff6b; box-shadow: var(--glow); }
 .btn-ghost { background: transparent; color: var(--muted); }
 .btn-ghost:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
 
@@ -158,3 +167,23 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; }
 .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* --- bug-exterminator flourishes --- */
+.hazard-stripe {
+  height: 3px; border-radius: 3px;
+  background: repeating-linear-gradient(45deg,
+    var(--warn) 0, var(--warn) 9px, #0d1218 9px, #0d1218 18px);
+  opacity: .55;
+}
+.card { transition: border-color .15s ease, box-shadow .15s ease; }
+.card:hover { border-color: var(--border-strong); }
+.stat-value { text-shadow: 0 0 18px rgba(157, 255, 60, 0.10); }
+.brand-mark { position: relative; }
+.brand-mark::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 10px;
+  background: radial-gradient(circle, rgba(157,255,60,.35), transparent 70%);
+  z-index: -1; filter: blur(6px);
+}
+.nav-item.active { box-shadow: inset 2px 0 0 var(--accent); }
+.pill-accent { box-shadow: 0 0 0 1px rgba(157,255,60,.12); }
+.zap { color: var(--accent); }

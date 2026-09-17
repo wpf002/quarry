@@ -21,8 +21,20 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-mark">Q</div>
-        <span className="brand-name">Quarry</span>
+        <div className="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <ellipse cx="12" cy="13" rx="5" ry="6" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="6" r="2.4" fill="currentColor" stroke="none" />
+            <line x1="12" y1="8" x2="12" y2="19" stroke="#06140a" strokeWidth="1.3" />
+            <path d="M7 10 3 7 M7 13 2.5 13 M7 16 3 19" />
+            <path d="M17 10 21 7 M17 13 21.5 13 M17 16 21 19" />
+            <path d="M10.3 4.6 8.8 2.8 M13.7 4.6 15.2 2.8" />
+          </svg>
+        </div>
+        <div>
+          <div className="brand-name">Quarry</div>
+          <div className="brand-tag">exterminator</div>
+        </div>
       </div>
       {NAV.map((n, i) =>
         'section' in n ? (
