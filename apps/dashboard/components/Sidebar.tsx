@@ -3,18 +3,10 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 const NAV = [
-  { section: 'Autonomous' },
   { href: '/', label: 'Overview' },
-  { href: '/inbox', label: 'Review Inbox' },
   { href: '/programs', label: 'Programs' },
   { href: '/findings', label: 'Findings' },
-  { href: '/queue', label: 'Report Queue' },
-  { href: '/metrics', label: 'Metrics' },
-  { section: 'Human Gate' },
-  { href: '/allowlist', label: 'Allowlist' },
-  { href: '/autonomy', label: 'Authorizations' },
   { href: '/autopilot', label: 'Autopilot' },
-  { section: 'Trace' },
   { href: '/audit', label: 'Audit Log' },
 ];
 
@@ -38,22 +30,16 @@ export function Sidebar() {
           <div className="brand-tag">exterminator</div>
         </div>
       </div>
-      {NAV.map((n, i) =>
-        'section' in n ? (
-          <div key={i} className="nav-section">
-            {n.section}
-          </div>
-        ) : (
-          <Link
-            key={n.href}
-            href={n.href!}
-            className={`nav-item${path === n.href ? ' active' : ''}`}
-          >
-            <span className="nav-dot" />
-            {n.label}
-          </Link>
-        ),
-      )}
+      {NAV.map((n) => (
+        <Link
+          key={n.href}
+          href={n.href}
+          className={`nav-item${path === n.href ? ' active' : ''}`}
+        >
+          <span className="nav-dot" />
+          {n.label}
+        </Link>
+      ))}
       <div style={{ flex: 1 }} />
       <div className="tag" style={{ alignSelf: 'flex-start' }}>
         passive-safe

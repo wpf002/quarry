@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma, safe } from '../lib/db';
 import { Stat } from '../components/ui';
 import { selectTopPrograms, proposeAllowlist, buildDigest } from '@quarry/autonomy';
+import { computeOutcomeStats } from '@quarry/feedback';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,21 +44,21 @@ export default async function Overview() {
     proposalsByProgram.push({ handle: p.handle, id: p.id, count: props.filter((pr) => !existing.has(pr.value)).length });
   }
 
-  const [total, active, findings, queued, submitted, revenueRows] = await Promise.all([
+  const [total, active, findings, queued, allSubs] = await Promise.all([
     safe(() => prisma.program.count(), 0),
     safe(() => prisma.program.count({ where: { active: true } }), 0),
     safe(() => prisma.finding.count(), 0),
     safe(() => prisma.submission.count({ where: { state: 'HELD_FOR_REVIEW' } }), 0),
-    safe(() => prisma.submission.count({ where: { state: 'SUBMITTED' } }), 0),
-    safe(() => prisma.submission.findMany({ where: { state: 'RESOLVED' }, select: { payoutUsd: true } }), [] as any[]),
+    safe(() => prisma.submission.findMany({ select: { state: true, payoutUsd: true } }), [] as any[]),
   ]);
-  const revenueUsd = revenueRows.reduce((n: number, r: any) => n + (r.payoutUsd ?? 0), 0);
+  const stats = computeOutcomeStats(allSubs.map((s: any) => s.state));
+  const revenueUsd = allSubs.reduce((n: number, s: any) => n + (s.state === 'RESOLVED' ? s.payoutUsd ?? 0 : 0), 0);
 
   const digest = buildDigest({
     newTopPrograms: top.map((p) => ({ handle: p.handle, score: p.score ?? 0 })),
     proposalsByProgram: proposalsByProgram.map((p) => ({ handle: p.handle, count: p.count })),
     queuedReports: queued,
-    autoSubmittedToday: submitted,
+    autoSubmittedToday: 0,
     pausedAuths: [],
     revenueUsd,
   });
@@ -67,18 +68,15 @@ export default async function Overview() {
       <div className="page-head">
         <div>
           <h1 className="page-title">Overview</h1>
-          <div className="page-sub">
-            Discovery and reporting run on their own. Active scanning stays behind
-            the human gate.
-          </div>
+          <div className="page-sub">Autonomous bug bounties. You confirm scope and press go; Quarry does the rest.</div>
         </div>
       </div>
 
-      <div className="grid grid-4" style={{ marginBottom: 20 }}>
-        <Stat label="Programs Discovered" value={total} hint="across all platforms" />
-        <Stat label="Active Programs" value={active} hint="you turned on" />
+      <div className="grid grid-4" style={{ marginBottom: 14 }}>
+        <Stat label="Programs" value={total} hint={`${active} active`} />
         <Stat label="Findings" value={findings} hint="passive and analyzed" />
         <Stat label="Awaiting Review" value={queued} hint="held, never auto-sent" />
+        <Stat label="Revenue" value={`$${revenueUsd.toLocaleString()}`} hint={`${Math.round(stats.validRate * 100)}% valid`} />
       </div>
 
       <div
@@ -117,15 +115,6 @@ export default async function Overview() {
                 </Link>
               ))
           )}
-        </div>
-      </div>
-
-      <div className="callout" style={{ marginTop: 20 }}>
-        <span>◆</span>
-        <div>
-          <strong>The autonomy boundary.</strong> Everything up to sending an
-          active packet runs unattended. Building the allowlist, approving a scan,
-          and final submission stay with you, per program.
         </div>
       </div>
     </>
