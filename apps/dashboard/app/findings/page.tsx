@@ -22,14 +22,32 @@ const STATE_PILL: Record<string, string> = {
 const PAGE_SIZE = 50;
 const fmt = (d: Date) => new Date(d).toISOString().slice(0, 16).replace('T', ' ');
 
-export default async function Findings({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+// Low-value classes that bounty programs almost never pay for. Hidden by
+// default so the list shows only payable-class candidates.
+const NOISE_CLASSES = [
+  'missing-security-header',
+  'discovered-endpoint',
+  'tech-fingerprint',
+  'dns-record',
+  'banner',
+  'info',
+  'informational',
+  'robots',
+  'sitemap',
+];
+
+export default async function Findings({ searchParams }: { searchParams: Promise<{ page?: string; all?: string }> }) {
   const sp = await searchParams;
   const page = Math.max(1, Number(sp?.page ?? '1') || 1);
-  const [total, findings, subs] = await Promise.all([
+  const showAll = sp?.all === '1';
+  const where = showAll ? {} : { NOT: { vulnClass: { in: NOISE_CLASSES } } };
+  const [total, allTotal, findings, subs] = await Promise.all([
+    safe(() => prisma.finding.count({ where }), 0),
     safe(() => prisma.finding.count(), 0),
     safe(
       () =>
         prisma.finding.findMany({
+          where,
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * PAGE_SIZE,
           take: PAGE_SIZE,
@@ -55,15 +73,21 @@ export default async function Findings({ searchParams }: { searchParams: Promise
         <div>
           <h1 className="page-title">Findings</h1>
           <div className="page-sub">
-            What Quarry found, and the reports drafted from it. Nothing goes out
-            until it clears the gate and you release it.
+            {showAll
+              ? 'Showing everything, including low-value informational findings.'
+              : 'Showing payable-class candidates. Header/endpoint/fingerprint noise is hidden.'}
           </div>
         </div>
+        <Link className="btn btn-sm" href={showAll ? '/findings' : '/findings?all=1'}>
+          {showAll ? 'Payable only' : `Show all (${allTotal.toLocaleString()})`}
+        </Link>
       </div>
 
       {findings.length === 0 ? (
-        <EmptyState title="No Findings Yet">
-          Findings appear here once the analyzer has triaged them.
+        <EmptyState title={showAll ? 'No Findings Yet' : 'No Payable-Class Candidates Yet'}>
+          {showAll
+            ? 'Findings appear here once the analyzer has triaged them.'
+            : `Nothing payable so far. ${allTotal.toLocaleString()} low-value findings are hidden — the current Infiltr profile emits mostly headers and endpoints. Add real vuln modules to Infiltr to get paid-class results.`}
         </EmptyState>
       ) : (
         <div className="table-wrap">
