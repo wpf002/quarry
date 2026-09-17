@@ -156,7 +156,8 @@ export function GateActions({
                   } catch (e) {
                     setBusy(null); setProg(null); setErr((e as Error).message); return;
                   }
-                  // Infiltr rate-limits (429). Pace the batch and retry transient 429s.
+                  // Retry transient failures: Infiltr 429s and network blips
+                  // (e.g. the API reloading) shouldn't kill a target.
                   const scanOne = async (target: string) => {
                     for (let attempt = 0; ; attempt++) {
                       try {
@@ -165,23 +166,30 @@ export function GateActions({
                         );
                       } catch (err) {
                         const msg = (err as Error).message;
-                        if (msg.includes('429') && attempt < 3) { await sleep(3000 * (attempt + 1)); continue; }
+                        const transient = msg.includes('429') || /failed to fetch|networkerror|load failed/i.test(msg);
+                        if (transient && attempt < 4) { await sleep(2500 * (attempt + 1)); continue; }
                         throw err;
                       }
                     }
                   };
-                  let findings = 0, assets = 0;
+                  // Run targets with bounded concurrency (faster wall-clock, but
+                  // capped so Infiltr isn't flooded).
+                  let findings = 0, assets = 0, done = 0;
                   const fails: string[] = [];
-                  for (let i = 0; i < active.length; i++) {
-                    try {
-                      const r = await scanOne(active[i].pattern);
-                      findings += r.findings; assets += r.assets;
-                    } catch (err) {
-                      fails.push(`${active[i].pattern}: ${(err as Error).message}`);
+                  const queue = [...active];
+                  const worker = async () => {
+                    for (let e = queue.shift(); e; e = queue.shift()) {
+                      try {
+                        const r = await scanOne(e.pattern);
+                        findings += r.findings; assets += r.assets;
+                      } catch (err) {
+                        fails.push(`${e.pattern}: ${(err as Error).message}`);
+                      }
+                      done += 1; setProg({ done, total: active.length });
                     }
-                    setProg({ done: i + 1, total: active.length });
-                    if (i < active.length - 1) await sleep(1500); // pace between targets
-                  }
+                  };
+                  const CONCURRENCY = 3;
+                  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, active.length) }, worker));
                   setBusy(null); setProg(null);
                   if (fails.length) setErr(fails.join(' · '));
                   setOk(`Scanned ${active.length - fails.length}/${active.length} target(s) at Tier ${scanTier}: ${findings} finding(s), ${assets} asset(s).`);
