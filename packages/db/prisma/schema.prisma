@@ -77,11 +77,12 @@ model Program {
   score           Float? // ProgramScorer output
   active          Boolean  @default(false) // human flipped it on
 
-  assets    Asset[]
-  allowlist Allowlist[]
-  approvals ScanApproval[]
-  preauths  PreAuthorization[]
-  findings  Finding[]
+  assets     Asset[]
+  allowlist  Allowlist[]
+  approvals  ScanApproval[]
+  preauths   PreAuthorization[]
+  autoSubmit AutoSubmitPolicy?
+  findings   Finding[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -200,6 +201,24 @@ model PreAuthorization {
   createdAt        DateTime @default(now())
 
   @@index([programId])
+}
+
+// L3 auto-submit policy. Opt-in per program. Reports whose finding clears this
+// bar are submitted without a click; high-impact classes and CRITICAL severity
+// never qualify. A reputation breaker pauses auto-submit if valid-rate drops.
+model AutoSubmitPolicy {
+  id                 String   @id @default(cuid())
+  program            Program  @relation(fields: [programId], references: [id])
+  programId          String   @unique
+  enabled            Boolean  @default(false)
+  minConfidence      Float    @default(0.85)
+  maxDupRisk         Float    @default(0.3)
+  allowedVulnClasses String[]
+  dailyCap           Int      @default(3)
+  requireChain       Boolean  @default(false)
+  createdBy          String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 // Append-only trail. Every scope verdict and every active action lands here.

@@ -133,6 +133,31 @@ app.post('/programs/:id/approve-scan', async (req, reply) => {
   }
 });
 
+// --- L3: auto-submit policy -----------------------------------------------
+app.post('/programs/:id/autosubmit-policy', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const b = (req.body ?? {}) as {
+    enabled?: boolean; minConfidence?: number; maxDupRisk?: number;
+    allowedVulnClasses?: string[]; dailyCap?: number; requireChain?: boolean; by?: string;
+  };
+  if (!b.by) return reply.code(400).send({ error: 'by required' });
+  const data = {
+    enabled: b.enabled ?? false,
+    minConfidence: b.minConfidence ?? 0.85,
+    maxDupRisk: b.maxDupRisk ?? 0.3,
+    allowedVulnClasses: b.allowedVulnClasses ?? [],
+    dailyCap: b.dailyCap ?? 3,
+    requireChain: b.requireChain ?? false,
+  };
+  const policy = await prisma.autoSubmitPolicy.upsert({
+    where: { programId: id },
+    create: { programId: id, createdBy: b.by, ...data },
+    update: data,
+  });
+  await audit({ actor: `human:${b.by}`, action: 'autosubmit.policy', programId: id, detail: { ...data } });
+  return { ok: true, policy };
+});
+
 // --- L2: ownership verification + standing authorizations -----------------
 app.post('/allowlist/:id/verify-ownership', async (req, reply) => {
   const { id } = req.params as { id: string };

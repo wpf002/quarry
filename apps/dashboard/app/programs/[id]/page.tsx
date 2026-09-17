@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma, safe } from '../../../lib/db';
 import { PlatformPill, ScoreBar } from '../../../components/ui';
 import { GateActions } from '../../../components/GateActions';
+import { AutoSubmitPolicy } from '../../../components/AutoSubmitPolicy';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function ProgramDetail({
         include: {
           allowlist: { orderBy: { createdAt: 'desc' } },
           assets: { orderBy: { createdAt: 'desc' }, take: 60 },
+          autoSubmit: true,
         },
       }),
     null,
@@ -114,12 +116,15 @@ export default async function ProgramDetail({
         </div>
 
         {/* right: the human gate */}
-        <GateActions
-          programId={program.id}
-          flags={program.ambiguityFlags}
-          allowlist={program.allowlist as any}
-          proposals={(scope.inScope ?? []).filter((a) => !a.includes('*'))}
-        />
+        <div className="grid" style={{ gap: 16 }}>
+          <GateActions
+            programId={program.id}
+            flags={program.ambiguityFlags}
+            allowlist={program.allowlist as any}
+            proposals={(scope.inScope ?? []).filter((a) => !a.includes('*'))}
+          />
+          <AutoSubmitPolicy programId={program.id} policy={program.autoSubmit as any} />
+        </div>
       </div>
     </>
   );

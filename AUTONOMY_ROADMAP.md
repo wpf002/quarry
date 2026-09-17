@@ -17,7 +17,9 @@ Today = **L0**. Everything below L0 is already built and passing tests.
 
 **Shipped:** L0, L1 (batch review inbox), L2 (standing authorizations with
 ownership-verified allowlists, budget/rate limits, and auto-revoking circuit
-breakers).
+breakers), L3 (opt-in auto-submit under a policy bar; high-impact/CRITICAL never
+auto-submit; reputation breaker). Note: L3 relaxes the original "nothing
+auto-submits" non-negotiable, by explicit choice, behind per-program opt-in.
 
 ---
 

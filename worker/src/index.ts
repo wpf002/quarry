@@ -1,7 +1,7 @@
 // Autonomous loop. Everything scheduled here is unattended and passive-safe.
 // Active scanning is NOT scheduled here; it only runs from an approved gate.
 import { discoverPrograms, persistDiscovered } from '@quarry/discovery';
-import { runAutoScans } from '@quarry/autonomy';
+import { runAutoScans, runAutoSubmit } from '@quarry/autonomy';
 
 const TICK_MS = Number(process.env.WORKER_TICK_MS ?? 60_000);
 
@@ -26,6 +26,15 @@ async function tick() {
       const runs = await runAutoScans();
       for (const r of runs) {
         console.log(`[autoscan] ${r.programId}: ${r.scanned} scanned${r.revoked ? ` (revoked: ${r.revoked})` : ''}`);
+      }
+    }
+
+    // L3 auto-submit — OFF unless enabled. Only submits reports that clear each
+    // program's opt-in policy bar; high-impact/critical never auto-submit.
+    if ((process.env.QUARRY_AUTOSUBMIT ?? '').toLowerCase() === 'on') {
+      const sent = await runAutoSubmit();
+      for (const r of sent) {
+        console.log(`[autosubmit] ${r.programId}: ${r.submitted} sent${r.paused ? ` (paused: ${r.paused})` : ''}`);
       }
     }
   } catch (e) {

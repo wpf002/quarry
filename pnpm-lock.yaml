@@ -129,6 +129,9 @@ importers:
       '@quarry/db':
         specifier: workspace:*
         version: link:../db
+      '@quarry/feedback':
+        specifier: workspace:*
+        version: link:../feedback
       '@quarry/recon-active':
         specifier: workspace:*
         version: link:../recon-active
