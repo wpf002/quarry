@@ -176,7 +176,17 @@ model ScanContext {
   id                String   @id @default(cuid())
   program           Program  @relation(fields: [programId], references: [id])
   programId         String   @unique
-  scanAuthHeaders   Json? // scan-wide session for authenticated testing: { "Cookie": "..." }
+  scanAuthHeaders   Json? // captured session (cache): { "Cookie": "..." } / { "Authorization": "..." }
+  // Credentialed auto-login: set once, Quarry logs in + refreshes the session.
+  authLoginUrl      String?
+  authUsername      String?
+  authPassword      String? // sensitive
+  authUserField     String? // login form field for the username (default "username")
+  authPassField     String? // login form field for the password (default "password")
+  authCsrfField     String? // hidden CSRF field to lift from a GET first (optional)
+  authTokenPath     String? // dot-path to a bearer token in a JSON login response (optional)
+  authJson          Boolean  @default(false) // send credentials as JSON instead of form
+  authCachedAt      DateTime? // when the cached session was captured
   idorVictimHeaders Json? // { "Cookie": "session=..." }
   idorVictimId      String?
   idorIdParam       String?

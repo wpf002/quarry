@@ -10,6 +10,7 @@ import { recordOutcome, recomputeProgramScore } from '@quarry/feedback';
 import { runActiveScan, KillSwitchEngaged, InfiltrError } from '@quarry/recon-active';
 import { ScopeRefusal } from '@quarry/core';
 import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signCampaign, pauseCampaign, CampaignRefusal, liveVerify } from '@quarry/autonomy';
+import { ensureSession, LoginError } from './autologin.js';
 
 const app = Fastify({ logger: true });
 
@@ -228,6 +229,9 @@ app.post('/programs/:id/scan-target', async (req, reply) => {
   if (!target) return reply.code(400).send({ error: 'target required' });
   const t = tier === 2 ? 2 : 1;
   try {
+    // Refresh the auto-login session (no-op if not configured) before scanning.
+    try { await ensureSession(id); }
+    catch (e) { if (e instanceof LoginError) return reply.code(400).send({ error: `auto-login failed: ${e.message}` }); throw e; }
     const context = await loadScanContext(id);
     const result = await runActiveScan({ programId: id, target, tier: t, profile: { tiers: [t] }, context });
     return { ok: true, assets: result.assets.length, findings: result.findings.length };
@@ -254,8 +258,20 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
     idorIdParam?: string | null;
     ssrfCanaryHost?: string | null;
     ssrfWait?: number | null;
+    authLoginUrl?: string | null;
+    authUsername?: string | null;
+    authPassword?: string | null;
+    authUserField?: string | null;
+    authPassField?: string | null;
+    authCsrfField?: string | null;
+    authTokenPath?: string | null;
+    authJson?: boolean;
   };
   if (!b.by) return reply.code(400).send({ error: 'by required' });
+
+  // Changing login config invalidates any cached session so the next scan re-auths.
+  const loginTouched = ['authLoginUrl', 'authUsername', 'authPassword', 'authUserField',
+    'authPassField', 'authCsrfField', 'authTokenPath', 'authJson'].some((k) => k in b);
 
   const data = {
     idorVictimId: b.idorVictimId ?? null,
@@ -263,7 +279,16 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
     ssrfCanaryHost: b.ssrfCanaryHost ?? null,
     ssrfWait: typeof b.ssrfWait === 'number' ? b.ssrfWait : null,
     updatedBy: b.by,
-    // Secret headers: only overwrite when the client actually sends them.
+    ...(b.authLoginUrl !== undefined ? { authLoginUrl: b.authLoginUrl ?? null } : {}),
+    ...(b.authUsername !== undefined ? { authUsername: b.authUsername ?? null } : {}),
+    ...(b.authUserField !== undefined ? { authUserField: b.authUserField ?? null } : {}),
+    ...(b.authPassField !== undefined ? { authPassField: b.authPassField ?? null } : {}),
+    ...(b.authCsrfField !== undefined ? { authCsrfField: b.authCsrfField ?? null } : {}),
+    ...(b.authTokenPath !== undefined ? { authTokenPath: b.authTokenPath ?? null } : {}),
+    ...(typeof b.authJson === 'boolean' ? { authJson: b.authJson } : {}),
+    ...(loginTouched ? { authCachedAt: null } : {}),
+    // Secrets: only overwrite when the client actually sends them.
+    ...(b.authPassword !== undefined ? { authPassword: b.authPassword ?? null } : {}),
     ...(b.idorVictimHeaders !== undefined ? { idorVictimHeaders: b.idorVictimHeaders ?? undefined } : {}),
     ...(b.scanAuthHeaders !== undefined ? { scanAuthHeaders: b.scanAuthHeaders ?? undefined } : {}),
   };
@@ -272,9 +297,10 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
     create: { programId: id, ...data } as any,
     update: data as any,
   });
-  await audit({ actor: `human:${b.by}`, action: 'scan-context.save', programId: id, detail: { auth: !!saved.scanAuthHeaders, idor: !!saved.idorVictimHeaders, ssrf: !!saved.ssrfCanaryHost } });
+  await audit({ actor: `human:${b.by}`, action: 'scan-context.save', programId: id, detail: { autoLogin: !!saved.authLoginUrl, auth: !!saved.scanAuthHeaders, idor: !!saved.idorVictimHeaders, ssrf: !!saved.ssrfCanaryHost } });
   return {
     ok: true,
+    hasAutoLogin: !!(saved.authLoginUrl && saved.authUsername),
     hasScanAuth: !!saved.scanAuthHeaders,
     hasIdorHeaders: !!saved.idorVictimHeaders,
     idorVictimId: saved.idorVictimId,
@@ -282,6 +308,24 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
     ssrfCanaryHost: saved.ssrfCanaryHost,
     ssrfWait: saved.ssrfWait,
   };
+});
+
+// Test the configured auto-login now and report what session it captured (header
+// names only — never the values). Primes the cache on success.
+app.post('/programs/:id/test-login', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { by } = (req.body ?? {}) as { by?: string };
+  if (!by) return reply.code(400).send({ error: 'by required' });
+  try {
+    const headers = await ensureSession(id, true);
+    if (!headers) return reply.code(400).send({ error: 'no auto-login configured (set a login URL + username)' });
+    await audit({ actor: `human:${by}`, action: 'scan-context.test_login', programId: id, detail: { captured: Object.keys(headers) } });
+    return { ok: true, captured: Object.keys(headers) };
+  } catch (e) {
+    if (e instanceof LoginError) return reply.code(400).send({ error: e.message });
+    req.log.error(e);
+    return reply.code(500).send({ error: 'test login failed' });
+  }
 });
 
 // --- L3: auto-submit policy -----------------------------------------------
