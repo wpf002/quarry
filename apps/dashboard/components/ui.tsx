@@ -104,3 +104,10 @@ export function Meter({
     </div>
   );
 }
+
+export function ConfidenceBand({ value }: { value: number | null | undefined }) {
+  const v = value ?? 0;
+  const band = v >= 0.8 ? 'HIGH' : v >= 0.5 ? 'MEDIUM' : 'LOW';
+  const cls = band === 'HIGH' ? 'pill-accent' : band === 'MEDIUM' ? 'pill-warn' : 'pill-muted';
+  return <span className={`pill ${cls}`}>{band}</span>;
+}

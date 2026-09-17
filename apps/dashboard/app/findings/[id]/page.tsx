@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { safe } from '../../../lib/db';
 import { getFindingTrace } from '@quarry/analyzer';
-import { SeverityPill, Meter } from '../../../components/ui';
+import { SeverityPill, Meter, ConfidenceBand } from '../../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,7 +77,7 @@ export default async function FindingDetail({ params }: { params: Promise<{ id: 
           <div className="card">
             <h3 style={{ fontSize: 15, marginBottom: 12 }}>Assessment</h3>
             <dl className="kv">
-              <dt>Confidence</dt><dd><Meter value={finding.confidence} /></dd>
+              <dt>Confidence</dt><dd><ConfidenceBand value={finding.confidence} /></dd>
               <dt>Dup risk</dt><dd><Meter value={finding.dupRisk} invert /></dd>
               <dt>Confirmed</dt><dd>{finding.humanConfirmed ? <span className="pill pill-accent">yes</span> : <span className="pill pill-muted">no</span>}</dd>
             </dl>

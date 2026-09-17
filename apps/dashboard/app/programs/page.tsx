@@ -1,6 +1,6 @@
 import { prisma, safe } from '../../lib/db';
 import Link from 'next/link';
-import { ScoreBar, PlatformPill, EmptyState } from '../../components/ui';
+import { ScoreBar, PlatformPill, EmptyState, ConfidenceBand } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,11 +65,7 @@ export default async function Programs() {
                   <td>
                     <ScoreBar value={p.score} />
                   </td>
-                  <td className="mono">
-                    {p.parseConfidence != null
-                      ? `${Math.round(p.parseConfidence * 100)}%`
-                      : '—'}
-                  </td>
+                  <td><ConfidenceBand value={p.parseConfidence} /></td>
                   <td>
                     {p.ambiguityFlags?.length ? (
                       <span className="pill pill-warn">

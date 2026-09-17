@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma, safe } from '../../lib/db';
-import { SeverityPill, Meter, EmptyState } from '../../components/ui';
+import { SeverityPill, Meter, EmptyState, ConfidenceBand } from '../../components/ui';
 import { OutcomeControls } from '../../components/OutcomeControls';
 
 export const dynamic = 'force-dynamic';
@@ -83,7 +83,7 @@ export default async function Findings() {
                       </Link>
                     </td>
                     <td><SeverityPill severity={f.severity} /></td>
-                    <td><Meter value={f.confidence} /></td>
+                    <td><ConfidenceBand value={f.confidence} /></td>
                     <td><Meter value={f.dupRisk} invert /></td>
                     <td>
                       {pass ? <span className="pill pill-accent">report-ready</span>

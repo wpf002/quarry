@@ -29,8 +29,8 @@ export default async function Autopilot() {
         <div>
           <h1 className="page-title">Autopilot</h1>
           <div className="page-sub">
-            Sign an envelope and Quarry runs the bounty inside it. Any pause
-            trigger, or the kill switch, halts everything.
+            Turn autonomous scanning on or off, and see what is authorized
+            to run.
           </div>
         </div>
       </div>
