@@ -189,3 +189,6 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .nav-item.active { box-shadow: inset 2px 0 0 var(--accent); }
 .pill-accent { box-shadow: 0 0 0 1px rgba(157,255,60,.12); }
 .zap { color: var(--accent); }
+
+.scope-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--faint); margin-bottom: 7px; font-weight: 600; }

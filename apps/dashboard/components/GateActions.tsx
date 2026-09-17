@@ -64,7 +64,7 @@ export function GateActions({
       <div className="card">
         <h3 style={{ fontSize: 15, marginBottom: 4 }}>Ambiguity Flags</h3>
         <div className="page-sub" style={{ marginBottom: 12 }}>
-          Every flag must be cleared before the program can be approved.
+          Clear each before you can approve.
         </div>
         {flags.length === 0 ? (
           <span className="pill pill-accent">all clear</span>
@@ -90,8 +90,7 @@ export function GateActions({
       <div className="card">
         <h3 style={{ fontSize: 15, marginBottom: 4 }}>Allowlist</h3>
         <div className="page-sub" style={{ marginBottom: 12 }}>
-          Whitelist only. Exact host, CIDR, or URL prefix. Wildcards need the
-          toggle and a note. No import from parsed scope, by design.
+          Whitelist only. Wildcards need the toggle and a note.
         </div>
         {active.length > 0 && (
           <div className="table-wrap" style={{ marginBottom: 12 }}>
@@ -160,8 +159,7 @@ export function GateActions({
       <div className="card" style={{ borderColor: ready ? 'var(--accent-dim)' : 'var(--border)' }}>
         <h3 style={{ fontSize: 15, marginBottom: 4 }}>Approve Scan</h3>
         <div className="page-sub" style={{ marginBottom: 12 }}>
-          One click, per program, expiring. Writes a ScanApproval — it does not
-          start a scan.
+          One click, per program. Expires; does not start a scan.
         </div>
         <button
           className="btn btn-primary"
@@ -178,8 +176,7 @@ export function GateActions({
       <div className="card" style={{ borderColor: allVerified && ready ? 'var(--accent-dim)' : 'var(--border)' }}>
         <h3 style={{ fontSize: 15, marginBottom: 4 }}>Standing Authorization</h3>
         <div className="page-sub" style={{ marginBottom: 12 }}>
-          Sign once; the scheduler runs Tier 1/2 scans within limits without
-          re-asking. Requires every allowlist entry ownership-verified.
+          Runs Tier 1–2 within limits until it expires. Every entry must be verified.
         </div>
         <button
           className="btn btn-primary"

@@ -52,9 +52,7 @@ export function AutoSubmitPolicy({ programId, policy }: { programId: string; pol
         </label>
       </div>
       <div className="page-sub" style={{ marginBottom: 12 }}>
-        Reports clearing this bar submit without a click. High-impact classes and
-        CRITICAL severity never auto-submit; the reputation breaker pauses if
-        valid-rate drops.
+        Sends reports that clear this bar. High-impact and Critical never auto-submit.
       </div>
       <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Min Confidence

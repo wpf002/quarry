@@ -63,60 +63,42 @@ export default async function ProgramDetail({
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1.2fr', gap: 20, alignItems: 'start' }}>
-        {/* left: advisory parsed scope */}
-        <div className="grid" style={{ gap: 16 }}>
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1.1fr', gap: 20, alignItems: 'stretch' }}>
+        {/* left: scope reference (read-only) */}
+        <div className="grid" style={{ gap: 16, alignContent: 'start' }}>
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 4 }}>Parsed Scope</h3>
-            <div className="page-sub" style={{ marginBottom: 12 }}>
-              Advisory only. The parser proposes; it never authorizes a scan.
+            <h3 style={{ fontSize: 15, marginBottom: 12 }}>Scope</h3>
+            <div className="scope-label">In scope</div>
+            <div className="chip-row" style={{ marginBottom: 14 }}>
+              {(scope.inScope ?? []).map((s) => <span key={s} className="tag">{s}</span>)}
+              {!scope.inScope?.length && <span style={{ color: 'var(--faint)' }}>—</span>}
             </div>
-            <dl className="kv">
-              <dt>In scope</dt>
-              <dd className="chip-row">
-                {(scope.inScope ?? []).map((s) => <span key={s} className="tag">{s}</span>)}
-                {!scope.inScope?.length && <span style={{ color: 'var(--faint)' }}>—</span>}
-              </dd>
-              <dt>Out of scope</dt>
-              <dd className="chip-row">
-                {(scope.outOfScope ?? []).map((s) => <span key={s} className="tag">{s}</span>)}
-                {!scope.outOfScope?.length && <span style={{ color: 'var(--faint)' }}>—</span>}
-              </dd>
-              <dt>Prohibited</dt>
-              <dd className="chip-row">
-                {(scope.prohibited ?? []).map((s) => <span key={s} className="pill pill-danger">{s}</span>)}
-                {!scope.prohibited?.length && <span style={{ color: 'var(--faint)' }}>—</span>}
-              </dd>
-              <dt>Confidence</dt>
-              <dd className="mono">{Math.round((program.parseConfidence ?? 0) * 100)}%</dd>
-            </dl>
+            {!!scope.outOfScope?.length && (
+              <>
+                <div className="scope-label">Out of scope</div>
+                <div className="chip-row">
+                  {scope.outOfScope.map((s) => <span key={s} className="tag">{s}</span>)}
+                </div>
+              </>
+            )}
           </div>
-          <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 8 }}>Captured Policy</h3>
-            <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--muted)', fontSize: 12.5, margin: 0, fontFamily: 'var(--mono)' }}>
-              {program.policyRaw || '—'}
-            </pre>
-          </div>
-          <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 4 }}>Attack Surface</h3>
-            <div className="page-sub" style={{ marginBottom: 12 }}>
-              {program.assets.length} asset(s) from passive recon. All default
-              out-of-scope until allowlisted.
-            </div>
-            {program.assets.length === 0 ? (
-              <div style={{ color: 'var(--faint)' }}>No assets discovered yet.</div>
-            ) : (
+          {program.assets.length > 0 && (
+            <div className="card">
+              <h3 style={{ fontSize: 15, marginBottom: 4 }}>Passive Assets</h3>
+              <div className="page-sub" style={{ marginBottom: 12 }}>
+                {program.assets.length} found. Out of scope until you allowlist them.
+              </div>
               <div className="chip-row">
                 {program.assets.map((a) => (
                   <span key={a.id} className="tag" title={a.source}>{a.value}</span>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* right: the human gate */}
-        <div className="grid" style={{ gap: 16 }}>
+        <div className="grid" style={{ gap: 16, alignContent: 'start' }}>
           <GateActions
             programId={program.id}
             flags={program.ambiguityFlags}
