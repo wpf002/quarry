@@ -45,26 +45,6 @@ app.get('/programs/:id', async (req, reply) => {
   return program;
 });
 
-// --- ambiguity clearing (human) -------------------------------------------
-app.post('/programs/:id/ambiguity/clear', async (req, reply) => {
-  const { id } = req.params as { id: string };
-  const { flag, clearedBy } = (req.body ?? {}) as { flag?: string; clearedBy?: string };
-  if (!flag || !clearedBy) return reply.code(400).send({ error: 'flag and clearedBy required' });
-
-  const program = await prisma.program.findUnique({ where: { id } });
-  if (!program) return reply.code(404).send({ error: 'not found' });
-
-  const remaining = program.ambiguityFlags.filter((f) => f !== flag);
-  await prisma.program.update({ where: { id }, data: { ambiguityFlags: remaining } });
-  await audit({
-    actor: `human:${clearedBy}`,
-    action: 'ambiguity.clear',
-    programId: id,
-    detail: { flag, remaining: remaining.length },
-  });
-  return { ok: true, remaining };
-});
-
 // --- allowlist builder (human) --------------------------------------------
 // Whitelist only. Wildcards require an explicit toggle AND a note. There is no
 // import-from-parsedScope shortcut, by design.
@@ -169,10 +149,12 @@ app.post('/campaigns/:id/pause', async (req, reply) => {
 // refuses unless the target is on a live allowlist under a valid approval.
 app.post('/programs/:id/scan-target', async (req, reply) => {
   const { id } = req.params as { id: string };
-  const { target } = (req.body ?? {}) as { target?: string };
+  const { target, tier } = (req.body ?? {}) as { target?: string; tier?: number };
   if (!target) return reply.code(400).send({ error: 'target required' });
+  if (tier === 3) return reply.code(400).send({ error: 'Tier 3 is never delegated' });
+  const t = tier === 2 ? 2 : 1;
   try {
-    const result = await runActiveScan({ programId: id, target, tier: 1, profile: { tiers: [1] } });
+    const result = await runActiveScan({ programId: id, target, tier: t, profile: { tiers: [t] } });
     return { ok: true, assets: result.assets.length, findings: result.findings.length };
   } catch (e) {
     if (e instanceof KillSwitchEngaged) return reply.code(409).send({ error: 'kill switch engaged' });

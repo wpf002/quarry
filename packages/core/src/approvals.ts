@@ -6,7 +6,6 @@ import { audit } from './audit.js';
 // rows that make an active scan legal.
 
 export interface ApprovalCheck {
-  ambiguityFlags: string[];
   activeAllowlistCount: number;
   liveApprovalTargets: number; // distinct programs already approved-and-live
   maxConcurrent: number;
@@ -18,9 +17,6 @@ export interface ApprovalDecision {
 }
 
 export function evaluateApproval(c: ApprovalCheck): ApprovalDecision {
-  if (c.ambiguityFlags.length > 0) {
-    return { ok: false, reason: `${c.ambiguityFlags.length} ambiguity flag(s) must be cleared first` };
-  }
   if (c.activeAllowlistCount < 1) {
     return { ok: false, reason: 'allowlist is empty — add at least one confirmed in-scope pattern' };
   }
@@ -62,14 +58,13 @@ export async function grantScanApproval(
   const maxConcurrent =
     opts?.maxConcurrent ?? Number(process.env.MAX_CONCURRENT_ACTIVE_TARGETS ?? 5);
 
-  const program = await prisma.program.findUniqueOrThrow({ where: { id: programId } });
+  await prisma.program.findUniqueOrThrow({ where: { id: programId } }); // existence check
   const allowlist = await prisma.allowlist.findMany({
     where: { programId, active: true },
   });
   const liveApprovalTargets = await countLiveApprovalTargets(now);
 
   const decision = evaluateApproval({
-    ambiguityFlags: program.ambiguityFlags,
     activeAllowlistCount: allowlist.length,
     liveApprovalTargets,
     maxConcurrent,

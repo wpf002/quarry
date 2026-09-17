@@ -74,7 +74,6 @@ export async function signCampaign(
   // Pre-validate ALL programs before provisioning any.
   for (const programId of programIds) {
     const program = await prisma.program.findUniqueOrThrow({ where: { id: programId } });
-    if (program.ambiguityFlags.length > 0) throw new CampaignRefusal(`${program.handle}: ambiguity flags remain`);
     const allowlist = await prisma.allowlist.findMany({ where: { programId, active: true } });
     if (allowlist.length === 0) throw new CampaignRefusal(`${program.handle}: allowlist empty`);
     if (allowlist.some((e) => !e.ownershipVerified)) throw new CampaignRefusal(`${program.handle}: unverified allowlist entries`);

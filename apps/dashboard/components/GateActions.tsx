@@ -15,12 +15,10 @@ type Entry = {
 
 export function GateActions({
   programId,
-  flags,
   allowlist,
   proposals = [],
 }: {
   programId: string;
-  flags: string[];
   allowlist: Entry[];
   proposals?: string[];
 }) {
@@ -29,9 +27,10 @@ export function GateActions({
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [scanTier, setScanTier] = useState<1 | 2>(1);
 
   const active = allowlist.filter((e) => e.active);
-  const ready = flags.length === 0 && active.length > 0;
+  const ready = active.length > 0;
   const allVerified = active.length > 0 && active.every((e) => e.ownershipVerified);
 
   const run = async (key: string, fn: () => Promise<any>, okMsg?: string) => {
@@ -60,30 +59,24 @@ export function GateActions({
         />
       </div>
 
-      {/* ambiguity — only shown when there is something to clear */}
-      {flags.length > 0 && (
-        <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 12 }}>Ambiguity Flags</h3>
-          <div className="grid" style={{ gap: 8 }}>
-            {flags.map((f) => (
-              <div key={f} className="callout" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{f}</span>
-                <button
-                  className="btn btn-sm"
-                  disabled={busy != null}
-                  onClick={() => run('flag' + f, () => apiPost(`/programs/${programId}/ambiguity/clear`, { flag: f, clearedBy: who }))}
-                >
-                  Clear
-                </button>
-              </div>
+      {/* allowlist + authorize (one card) */}
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ fontSize: 15 }}>Targets</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="scope-label" style={{ margin: 0 }}>Scan tier</span>
+            {[1, 2].map((t) => (
+              <button
+                key={t}
+                className={`btn btn-sm${scanTier === t ? ' btn-primary' : ''}`}
+                onClick={() => setScanTier(t as 1 | 2)}
+                title={t === 1 ? 'Passive / safe checks' : 'Low-impact active checks'}
+              >
+                T{t}
+              </button>
             ))}
           </div>
         </div>
-      )}
-
-      {/* allowlist + authorize (one card) */}
-      <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Allowlist</h3>
         {active.length > 0 && (
           <div className="table-wrap" style={{ marginBottom: 12 }}>
             <table className="table">
@@ -114,9 +107,9 @@ export function GateActions({
                               setBusy('scan' + e.id); setErr(null); setOk(null);
                               try {
                                 const r = await apiPost<{ assets: number; findings: number }>(
-                                  `/programs/${programId}/scan-target`, { target: e.pattern },
+                                  `/programs/${programId}/scan-target`, { target: e.pattern, tier: scanTier },
                                 );
-                                setOk(`Scanned ${e.pattern}: ${r.findings} finding(s), ${r.assets} asset(s).`);
+                                setOk(`Scanned ${e.pattern} (Tier ${scanTier}): ${r.findings} finding(s), ${r.assets} asset(s).`);
                                 router.refresh();
                               } catch (err) {
                                 setErr((err as Error).message);
@@ -182,11 +175,9 @@ export function GateActions({
               ? 'Authorizing…'
               : active.length === 0
                 ? 'Add a Host First'
-                : !ready
-                  ? 'Clear Flags First'
-                  : !allVerified
-                    ? 'Verify Entries First'
-                    : 'Authorize Scanning'}
+                : !allVerified
+                  ? 'Verify Entries First'
+                  : 'Authorize Scanning'}
           </button>
           {ok && <span style={{ color: 'var(--accent)', fontSize: 13 }}>{ok}</span>}
           {err && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{err}</span>}

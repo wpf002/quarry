@@ -39,6 +39,15 @@ export default async function ProgramDetail({
     );
   }
 
+  const scannableHost = (a: string) => {
+    const v = (a || '').toLowerCase().trim();
+    if (!v || /\s/.test(v)) return false;                 // "Dropbox Desktop Application"
+    if (/^\d+$/.test(v)) return false;                    // numeric asset ids
+    if (v.startsWith('com.') || v.includes('play.google.com') || v.includes('apps.apple.com')) return false;
+    if (v.includes('github.com') || v.includes('gitlab.com')) return false;
+    if (/\.(apk|ipa)$/.test(v)) return false;
+    return /[a-z0-9.-]+\.[a-z]{2,}/.test(v) || /^\d{1,3}(\.\d{1,3}){3}/.test(v) || v.startsWith('http');
+  };
   const scope = (program.parsedScope ?? {}) as {
     inScope?: string[];
     outOfScope?: string[];
@@ -66,9 +75,8 @@ export default async function ProgramDetail({
       <div className="grid" style={{ gap: 16 }}>
         <GateActions
           programId={program.id}
-          flags={program.ambiguityFlags}
           allowlist={program.allowlist as any}
-          proposals={(scope.inScope ?? []).filter((a) => !a.includes('*'))}
+          proposals={(scope.inScope ?? []).filter((a) => !a.includes('*') && scannableHost(a))}
         />
         <AutoSubmitPolicy programId={program.id} policy={program.autoSubmit as any} />
 

@@ -41,9 +41,6 @@ export function Sidebar() {
         </Link>
       ))}
       <div style={{ flex: 1 }} />
-      <div className="tag" style={{ alignSelf: 'flex-start' }}>
-        passive-safe
-      </div>
     </aside>
   );
 }

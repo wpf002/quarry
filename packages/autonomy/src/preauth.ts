@@ -44,10 +44,7 @@ export async function grantPreAuthorization(
   const tiers = (opts.tiers ?? [1, 2]).filter((t) => t === 1 || t === 2);
   if (tiers.length === 0) throw new PreAuthRefusal('tiers must include 1 and/or 2 (never 3)');
 
-  const program = await prisma.program.findUniqueOrThrow({ where: { id: programId } });
-  if (program.ambiguityFlags.length > 0) {
-    throw new PreAuthRefusal(`${program.ambiguityFlags.length} ambiguity flag(s) must be cleared`);
-  }
+  await prisma.program.findUniqueOrThrow({ where: { id: programId } }); // existence check
   const allowlist = await prisma.allowlist.findMany({ where: { programId, active: true } });
   if (allowlist.length === 0) throw new PreAuthRefusal('allowlist is empty');
   const unverified = allowlist.filter((e) => !e.ownershipVerified);
