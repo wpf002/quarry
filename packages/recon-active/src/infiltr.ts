@@ -1,4 +1,4 @@
-import type { InfiltrClient, InfiltrResult, ScanProfile } from './types.js';
+import type { InfiltrClient, InfiltrContext, InfiltrResult, ScanProfile } from './types.js';
 
 type HttpFn = (
   url: string,
@@ -29,19 +29,22 @@ export class HttpInfiltrClient implements InfiltrClient {
     private timeoutMs = Number(process.env.INFILTR_TIMEOUT_MS ?? 130_000),
   ) {}
 
-  async scan(target: string, profile: ScanProfile): Promise<InfiltrResult> {
+  async scan(target: string, profile: ScanProfile, context?: InfiltrContext): Promise<InfiltrResult> {
     if (!this.baseUrl || !this.apiKey) {
       throw new Error('Infiltr is not configured (INFILTR_BASE_URL / INFILTR_API_KEY)');
     }
     // Infiltr's sync scan blocks up to 120s; give it a little headroom, then
     // treat an abort as transient rather than scope drift.
     const signal = AbortSignal.timeout(this.timeoutMs);
+    const body = context && Object.keys(context).length > 0
+      ? { target, profile, context }
+      : { target, profile };
     let res;
     try {
       res = await this.http(`${this.baseUrl}/scan`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${this.apiKey}` },
-        body: JSON.stringify({ target, profile }),
+        body: JSON.stringify(body),
         signal,
       });
     } catch (e) {

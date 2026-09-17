@@ -55,7 +55,7 @@ export async function runActiveScan(
     detail: { tier: input.tier, profile: input.profile },
   });
 
-  const result = await infiltr.scan(input.target, input.profile);
+  const result = await infiltr.scan(input.target, input.profile, input.context);
   await persist(input.programId, result);
   return result;
 }

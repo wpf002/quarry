@@ -144,6 +144,26 @@ app.post('/campaigns/:id/pause', async (req, reply) => {
   return { ok: true };
 });
 
+// Build the optional Infiltr context (IDOR 2nd identity / SSRF canary) from a
+// program's saved ScanContext. Returns undefined when nothing useful is set.
+async function loadScanContext(programId: string) {
+  const c = await prisma.scanContext.findUnique({ where: { programId } });
+  if (!c) return undefined;
+  const ctx: { idor?: Record<string, unknown>; ssrf?: Record<string, unknown> } = {};
+  const headers = (c.idorVictimHeaders ?? null) as Record<string, string> | null;
+  if (headers && Object.keys(headers).length > 0) {
+    ctx.idor = {
+      victim_headers: headers,
+      ...(c.idorVictimId ? { victim_id: c.idorVictimId } : {}),
+      ...(c.idorIdParam ? { id_param: c.idorIdParam } : {}),
+    };
+  }
+  if (c.ssrfCanaryHost) {
+    ctx.ssrf = { canary_host: c.ssrfCanaryHost, ...(c.ssrfWait ? { wait: c.ssrfWait } : {}) };
+  }
+  return Object.keys(ctx).length > 0 ? ctx : undefined;
+}
+
 // --- Manual single-target scan (gated) -----------------------------------
 // Runs ONE authorized target through the same gate the autopilot uses. It
 // refuses unless the target is on a live allowlist under a valid approval.
@@ -153,7 +173,8 @@ app.post('/programs/:id/scan-target', async (req, reply) => {
   if (!target) return reply.code(400).send({ error: 'target required' });
   const t = tier === 2 ? 2 : 1;
   try {
-    const result = await runActiveScan({ programId: id, target, tier: t, profile: { tiers: [t] } });
+    const context = await loadScanContext(id);
+    const result = await runActiveScan({ programId: id, target, tier: t, profile: { tiers: [t] }, context });
     return { ok: true, assets: result.assets.length, findings: result.findings.length };
   } catch (e) {
     if (e instanceof KillSwitchEngaged) return reply.code(409).send({ error: 'kill switch engaged' });
@@ -162,6 +183,46 @@ app.post('/programs/:id/scan-target', async (req, reply) => {
     req.log.error(e);
     return reply.code(500).send({ error: 'scan failed' });
   }
+});
+
+// --- Scan context (IDOR 2nd identity / SSRF canary) -----------------------
+// Sensitive: idorVictimHeaders holds a victim session. Stored locally and sent
+// only to your Infiltr. Omitting idorVictimHeaders on update keeps the saved
+// headers, so the secret is never round-tripped through the client.
+app.post('/programs/:id/scan-context', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const b = (req.body ?? {}) as {
+    by?: string;
+    idorVictimHeaders?: Record<string, string> | null;
+    idorVictimId?: string | null;
+    idorIdParam?: string | null;
+    ssrfCanaryHost?: string | null;
+    ssrfWait?: number | null;
+  };
+  if (!b.by) return reply.code(400).send({ error: 'by required' });
+
+  const data = {
+    idorVictimId: b.idorVictimId ?? null,
+    idorIdParam: b.idorIdParam ?? null,
+    ssrfCanaryHost: b.ssrfCanaryHost ?? null,
+    ssrfWait: typeof b.ssrfWait === 'number' ? b.ssrfWait : null,
+    updatedBy: b.by,
+    ...(b.idorVictimHeaders !== undefined ? { idorVictimHeaders: b.idorVictimHeaders ?? undefined } : {}),
+  };
+  const saved = await prisma.scanContext.upsert({
+    where: { programId: id },
+    create: { programId: id, ...data } as any,
+    update: data as any,
+  });
+  await audit({ actor: `human:${b.by}`, action: 'scan-context.save', programId: id, detail: { idor: !!saved.idorVictimHeaders, ssrf: !!saved.ssrfCanaryHost } });
+  return {
+    ok: true,
+    hasIdorHeaders: !!saved.idorVictimHeaders,
+    idorVictimId: saved.idorVictimId,
+    idorIdParam: saved.idorIdParam,
+    ssrfCanaryHost: saved.ssrfCanaryHost,
+    ssrfWait: saved.ssrfWait,
+  };
 });
 
 // --- L3: auto-submit policy -----------------------------------------------

@@ -88,6 +88,7 @@ model Program {
   preauths   PreAuthorization[]
   autoSubmit AutoSubmitPolicy?
   findings   Finding[]
+  scanContext ScanContext?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -166,6 +167,23 @@ model Finding {
   humanConfirmed Boolean  @default(false)
   report         Report?
   createdAt      DateTime @default(now())
+}
+
+// Optional per-program scan context passed to Infiltr for checks that need a
+// second identity (IDOR) or an out-of-band canary (SSRF). Sensitive: the IDOR
+// headers hold a victim session, stored locally and sent only to your Infiltr.
+model ScanContext {
+  id                String   @id @default(cuid())
+  program           Program  @relation(fields: [programId], references: [id])
+  programId         String   @unique
+  idorVictimHeaders Json? // { "Cookie": "session=..." }
+  idorVictimId      String?
+  idorIdParam       String?
+  ssrfCanaryHost    String?
+  ssrfWait          Int?
+  updatedBy         String?
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
 }
 
 model Report {

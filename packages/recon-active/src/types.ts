@@ -8,6 +8,13 @@ export interface ScanProfile {
   tools?: string[];
 }
 
+// Optional per-scan context for checks that need more than a URL. Passed
+// straight through to Infiltr. Only idor/ssrf keys are honored there.
+export interface InfiltrContext {
+  idor?: { victim_headers?: Record<string, string>; victim_id?: string; id_param?: string };
+  ssrf?: { canary_host?: string; wait?: number };
+}
+
 export interface ScanTargetInput {
   programId: string;
   target: string;
@@ -15,6 +22,8 @@ export interface ScanTargetInput {
   profile: ScanProfile;
   /** Required for Tier 3: each high-impact action needs its own confirmation. */
   perActionConfirmed?: boolean;
+  /** Optional IDOR/SSRF context forwarded to Infiltr. */
+  context?: InfiltrContext;
 }
 
 export interface InfiltrFinding {
@@ -35,5 +44,5 @@ export interface InfiltrResult {
 }
 
 export interface InfiltrClient {
-  scan(target: string, profile: ScanProfile): Promise<InfiltrResult>;
+  scan(target: string, profile: ScanProfile, context?: InfiltrContext): Promise<InfiltrResult>;
 }

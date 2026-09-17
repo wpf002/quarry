@@ -3,6 +3,7 @@ import { prisma, safe } from '../../../lib/db';
 import { PlatformPill } from '../../../components/ui';
 import { GateActions } from '../../../components/GateActions';
 import { AutoSubmitPolicy } from '../../../components/AutoSubmitPolicy';
+import { ScanContextForm } from '../../../components/ScanContextForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ export default async function ProgramDetail({
           allowlist: { orderBy: { createdAt: 'desc' } },
           assets: { orderBy: { createdAt: 'desc' }, take: 60 },
           autoSubmit: true,
+          scanContext: true,
         },
       }),
     null,
@@ -76,6 +78,17 @@ export default async function ProgramDetail({
           proposals={(scope.inScope ?? []).filter((a) => !a.includes('*') && scannableHost(a))}
         />
         <AutoSubmitPolicy programId={program.id} policy={program.autoSubmit as any} />
+
+        <ScanContextForm
+          programId={program.id}
+          initial={{
+            hasIdorHeaders: !!(program.scanContext?.idorVictimHeaders && Object.keys(program.scanContext.idorVictimHeaders as object).length > 0),
+            idorVictimId: program.scanContext?.idorVictimId ?? null,
+            idorIdParam: program.scanContext?.idorIdParam ?? null,
+            ssrfCanaryHost: program.scanContext?.ssrfCanaryHost ?? null,
+            ssrfWait: program.scanContext?.ssrfWait ?? null,
+          }}
+        />
 
         {(scope.outOfScope?.length || program.assets.length > 0) && (
           <details className="card">
