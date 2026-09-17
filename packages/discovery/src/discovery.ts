@@ -1,0 +1,114 @@
+import { prisma } from '@quarry/db';
+import { audit } from '@quarry/core';
+import { HeuristicPolicyParser, type PolicyParser, type ParsedScope } from '@quarry/ai';
+import type { RawProgram, ScoreBreakdown } from './types.js';
+import type { PlatformConnector } from './connectors.js';
+import { defaultConnectors } from './connectors.js';
+import { scoreProgram } from './scorer.js';
+
+export interface DiscoveredProgram {
+  raw: RawProgram;
+  parsedScope: ParsedScope;
+  parseConfidence: number;
+  ambiguityFlags: string[];
+  score: ScoreBreakdown;
+}
+
+// AUTONOMOUS. Pull programs from every configured connector, parse each policy,
+// and score it. No target traffic — only platform APIs. Pure aside from the
+// connectors' own network calls; returns data, persistence is separate.
+export async function discoverPrograms(
+  connectors: PlatformConnector[] = defaultConnectors(),
+  parser: PolicyParser = new HeuristicPolicyParser(),
+): Promise<DiscoveredProgram[]> {
+  const out: DiscoveredProgram[] = [];
+  for (const c of connectors) {
+    let raws: RawProgram[] | null;
+    try {
+      raws = await c.fetchPrograms();
+    } catch {
+      // A single platform being down must not sink the whole run.
+      continue;
+    }
+    if (!raws) continue; // connector had no creds
+    for (const raw of raws) {
+      const parsed = parser.parsePolicy(raw.policyRaw);
+      const score = scoreProgram({
+        maxBountyUsd: raw.maxBountyUsd,
+        inScopeCount: parsed.scope.inScope.length,
+        parseConfidence: parsed.confidence,
+        ambiguityCount: parsed.ambiguityFlags.length,
+        hasWideScope:
+          parsed.scope.inScope.some((a: string) => a.startsWith('*.')) ||
+          parsed.ambiguityFlags.some((f: string) => f.includes('open-ended')),
+      });
+      out.push({
+        raw,
+        parsedScope: parsed.scope,
+        parseConfidence: parsed.confidence,
+        ambiguityFlags: parsed.ambiguityFlags,
+        score,
+      });
+    }
+  }
+  return out;
+}
+
+// Persist discovery output. Upserts Program rows and re-parses only when the
+// policy text actually changed (diff). Writes an AuditLog row per parse. This
+// NEVER flips `active` and NEVER marks an asset authoritatively in-scope.
+export async function persistDiscovered(
+  discovered: DiscoveredProgram[],
+): Promise<{ created: number; updated: number; unchanged: number }> {
+  let created = 0;
+  let updated = 0;
+  let unchanged = 0;
+
+  for (const d of discovered) {
+    const existing = await prisma.program.findUnique({
+      where: {
+        platform_handle: { platform: d.raw.platform, handle: d.raw.handle },
+      },
+    });
+
+    if (existing && existing.policyRaw === d.raw.policyRaw) {
+      unchanged++;
+      continue;
+    }
+
+    const data = {
+      name: d.raw.name,
+      policyRaw: d.raw.policyRaw,
+      parsedScope: d.parsedScope as object,
+      parseConfidence: d.parseConfidence,
+      ambiguityFlags: d.ambiguityFlags,
+      maxBountyUsd: d.raw.maxBountyUsd ?? null,
+      score: d.score.total,
+    };
+
+    const row = await prisma.program.upsert({
+      where: {
+        platform_handle: { platform: d.raw.platform, handle: d.raw.handle },
+      },
+      create: { platform: d.raw.platform, handle: d.raw.handle, ...data },
+      update: data,
+    });
+
+    if (existing) updated++;
+    else created++;
+
+    await audit({
+      actor: 'parser:heuristic-v1',
+      action: 'scope.parse',
+      programId: row.id,
+      detail: {
+        confidence: d.parseConfidence,
+        ambiguityFlags: d.ambiguityFlags,
+        inScopeProposed: d.parsedScope.inScope,
+        note: 'advisory only; does not authorize scanning',
+      },
+    });
+  }
+
+  return { created, updated, unchanged };
+}

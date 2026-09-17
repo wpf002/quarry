@@ -1,2 +1,2 @@
-// @quarry/ai — Flint seam wrapper: policy parsing, triage, report drafting
-export const PACKAGE = 'ai';
+export * from './types.js';
+export * from './heuristic.js';

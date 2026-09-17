@@ -1,62 +1,46 @@
-// Placeholder home for the human-gate dashboard.
-//
-// This is a static shell. Live data wiring (ranked program list, ambiguity
-// clearing, allowlist builder, one-click Approve scan) is Phase 1 / Phase 4 —
-// it reads from Postgres via @quarry/db and is intentionally NOT built yet.
-// The autonomy boundary below is the product's whole point.
+import { prisma, safe } from '../lib/db';
+import { Stat } from '../components/ui';
 
-const GATED = [
-  ['Allowlist construction', 'Confirm real in-scope assets, by hand.'],
-  ['Active scan approval', 'One click, per program, expiring.'],
-  ['Final submission', 'No report leaves unread. Nothing auto-submits.'],
-];
+export const dynamic = 'force-dynamic';
 
-const AUTONOMOUS = [
-  'Program discovery',
-  'Policy parsing → structured scope + confidence + ambiguity flags',
-  'Program scoring / ranking',
-  'Passive recon (CT logs, passive DNS, public source, security.txt)',
-  'Triage, chain detection, impact, duplicate risk',
-  'Report drafting, contact resolution, submission queueing',
-];
+export default async function Overview() {
+  const [programs, active, findings, queued] = await Promise.all([
+    safe(() => prisma.program.count(), 0),
+    safe(() => prisma.program.count({ where: { active: true } }), 0),
+    safe(() => prisma.finding.count(), 0),
+    safe(
+      () => prisma.submission.count({ where: { state: 'HELD_FOR_REVIEW' } }),
+      0,
+    ),
+  ]);
 
-export default function Home() {
   return (
-    <main style={{ maxWidth: 820, margin: '0 auto', padding: '3rem 1.5rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>Quarry</h1>
-      <p style={{ color: '#9aa4b2', marginTop: 0 }}>
-        Autonomous bug-bounty engine. Everything runs unattended up to the point
-        where it would send an active packet at someone else&apos;s system —
-        that step, and final submission, stay with a human.
-      </p>
+    <>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">Overview</h1>
+          <div className="page-sub">
+            Autonomous discovery and reporting. Active scanning stays behind the
+            human gate.
+          </div>
+        </div>
+      </div>
 
-      <section style={{ marginTop: '2rem' }}>
-        <h2 style={{ fontSize: '1.1rem', color: '#7ee787' }}>Autonomous</h2>
-        <ul style={{ lineHeight: 1.7 }}>
-          {AUTONOMOUS.map((x) => (
-            <li key={x}>{x}</li>
-          ))}
-        </ul>
-      </section>
+      <div className="grid grid-4" style={{ marginBottom: 22 }}>
+        <Stat label="Programs discovered" value={programs} hint="across all platforms" />
+        <Stat label="Active programs" value={active} hint="human flipped on" />
+        <Stat label="Findings" value={findings} hint="passive + analyzed" />
+        <Stat label="Awaiting review" value={queued} hint="held, never auto-sent" />
+      </div>
 
-      <section style={{ marginTop: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.1rem', color: '#ff7b72' }}>
-          Human-gated (this dashboard&apos;s job)
-        </h2>
-        <ul style={{ lineHeight: 1.7, listStyle: 'none', paddingLeft: 0 }}>
-          {GATED.map(([title, desc]) => (
-            <li key={title} style={{ marginBottom: '0.5rem' }}>
-              <strong>{title}</strong>
-              <span style={{ color: '#9aa4b2' }}> — {desc}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <p style={{ marginTop: '2rem', color: '#6b7280', fontSize: '0.85rem' }}>
-        Scaffold state: safety gate (assertActiveScanAllowed) is implemented and
-        tested. Data-backed views land in Phase&nbsp;1 / Phase&nbsp;4.
-      </p>
-    </main>
+      <div className="callout">
+        <span>◆</span>
+        <div>
+          <strong>Autonomy boundary.</strong> Everything up to originating an
+          active packet runs unattended. Building the allowlist, approving a
+          scan, and final submission are human actions, per program.
+        </div>
+      </div>
+    </>
   );
 }

@@ -1,23 +1,20 @@
+import './globals.css';
 import type { ReactNode } from 'react';
+import { Sidebar } from '../components/Sidebar';
 
 export const metadata = {
-  title: 'Quarry — human gate',
-  description: 'Clear ambiguity, build the allowlist, approve scans.',
+  title: 'Quarry',
+  description: 'Autonomous bug-bounty engine with a human gate.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily:
-            'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
-          background: '#0b0e14',
-          color: '#e6e6e6',
-        }}
-      >
-        {children}
+      <body>
+        <div className="shell">
+          <Sidebar />
+          <main className="main">{children}</main>
+        </div>
       </body>
     </html>
   );

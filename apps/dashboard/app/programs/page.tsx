@@ -1,0 +1,94 @@
+import { prisma, safe } from '../../lib/db';
+import { ScoreBar, PlatformPill, EmptyState } from '../../components/ui';
+
+export const dynamic = 'force-dynamic';
+
+export default async function Programs() {
+  const programs = await safe(
+    () =>
+      prisma.program.findMany({
+        orderBy: [{ score: 'desc' }, { updatedAt: 'desc' }],
+        take: 100,
+      }),
+    [] as any[],
+  );
+
+  return (
+    <>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">Programs</h1>
+          <div className="page-sub">
+            Ranked by the scorer. Ambiguity flags must be cleared by a human
+            before a program can be scanned.
+          </div>
+        </div>
+      </div>
+
+      {programs.length === 0 ? (
+        <EmptyState title="No programs yet">
+          Run the worker to poll platforms, or seed the database with{' '}
+          <code>pnpm --filter @quarry/db seed</code>.
+        </EmptyState>
+      ) : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Program</th>
+                <th>Platform</th>
+                <th>Max bounty</th>
+                <th style={{ width: 160 }}>Score</th>
+                <th>Confidence</th>
+                <th>Flags</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {programs.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{p.name}</div>
+                    <div className="mono" style={{ color: 'var(--faint)' }}>
+                      {p.handle}
+                    </div>
+                  </td>
+                  <td>
+                    <PlatformPill platform={p.platform} />
+                  </td>
+                  <td className="mono">
+                    {p.maxBountyUsd ? `$${p.maxBountyUsd.toLocaleString()}` : '—'}
+                  </td>
+                  <td>
+                    <ScoreBar value={p.score} />
+                  </td>
+                  <td className="mono">
+                    {p.parseConfidence != null
+                      ? `${Math.round(p.parseConfidence * 100)}%`
+                      : '—'}
+                  </td>
+                  <td>
+                    {p.ambiguityFlags?.length ? (
+                      <span className="pill pill-warn">
+                        {p.ambiguityFlags.length} to clear
+                      </span>
+                    ) : (
+                      <span className="pill pill-muted">clear</span>
+                    )}
+                  </td>
+                  <td>
+                    {p.active ? (
+                      <span className="pill pill-accent">active</span>
+                    ) : (
+                      <span className="pill pill-muted">discovered</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}

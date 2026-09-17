@@ -20,5 +20,6 @@ jobs:
       # Prisma client is generated offline; no database is required for CI.
       - run: pnpm db:generate
       - run: pnpm typecheck
-      # The enforcer suite is the merge blocker on core/db/gate changes.
-      - run: pnpm --filter @quarry/core test
+      - run: pnpm build
+      # Enforcer + unit suites. Turbo builds workspace deps first (^build).
+      - run: pnpm test

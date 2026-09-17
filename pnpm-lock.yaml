@@ -82,10 +82,10 @@ importers:
       '@quarry/core':
         specifier: workspace:*
         version: link:../core
-      '@quarry/db':
-        specifier: workspace:*
-        version: link:../db
     devDependencies:
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.13
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
@@ -125,12 +125,18 @@ importers:
       prisma:
         specifier: ^5.20.0
         version: 5.22.0
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.13
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
 
   packages/discovery:
     dependencies:
+      '@quarry/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@quarry/core':
         specifier: workspace:*
         version: link:../core
@@ -138,6 +144,9 @@ importers:
         specifier: workspace:*
         version: link:../db
     devDependencies:
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.13
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
