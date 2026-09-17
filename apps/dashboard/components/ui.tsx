@@ -25,7 +25,7 @@ export function ScoreBar({ value }: { value: number | null | undefined }) {
       <div className="score-track">
         <div className="score-fill" style={{ width: `${v * 100}%` }} />
       </div>
-      <span className="score-num">{value == null ? '—' : v.toFixed(2)}</span>
+      <span className="score-num">{value == null ? '—' : `${Math.round(v * 100)}%`}</span>
     </div>
   );
 }
@@ -100,7 +100,7 @@ export function Meter({
           style={{ width: `${v * 100}%`, background: color }}
         />
       </div>
-      <span className="score-num">{value == null ? '—' : v.toFixed(2)}</span>
+      <span className="score-num">{value == null ? '—' : `${Math.round(v * 100)}%`}</span>
     </div>
   );
 }

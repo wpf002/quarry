@@ -96,7 +96,7 @@ export default async function Overview() {
             top.map((p) => (
               <Link key={p.id} href={`/programs/${p.id}`} className="callout" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ color: 'var(--text)' }}>{p.handle}</span>
-                <span className="mono zap">{(p.score ?? 0).toFixed(2)}</span>
+                <span className="mono zap">{Math.round((p.score ?? 0) * 100)}%</span>
               </Link>
             ))
           )}

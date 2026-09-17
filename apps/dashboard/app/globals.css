@@ -119,9 +119,10 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .pill-danger { background: #3a1720; color: var(--danger); }
 
 .mono { font-family: var(--mono); font-size: 12.5px; }
-.tag { font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+.tag { font-family: var(--mono); font-size: 11px; color: var(--muted);
   background: var(--panel-2); border: 1px solid var(--border);
-  padding: 1px 6px; border-radius: 5px; }
+  padding: 1px 6px; border-radius: 5px;
+  text-transform: uppercase; letter-spacing: .04em; }
 
 /* score bar */
 .score { display: flex; align-items: center; gap: 8px; min-width: 120px; }
