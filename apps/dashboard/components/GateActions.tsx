@@ -62,10 +62,7 @@ export function GateActions({
 
       {/* ambiguity */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Ambiguity Flags</h3>
-        <div className="page-sub" style={{ marginBottom: 12 }}>
-          Clear each before you can approve.
-        </div>
+        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Ambiguity Flags</h3>
         {flags.length === 0 ? (
           <span className="pill pill-accent">all clear</span>
         ) : (
@@ -88,10 +85,7 @@ export function GateActions({
 
       {/* allowlist */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Allowlist</h3>
-        <div className="page-sub" style={{ marginBottom: 12 }}>
-          Whitelist only. Wildcards need the toggle and a note.
-        </div>
+        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Allowlist</h3>
         {active.length > 0 && (
           <div className="table-wrap" style={{ marginBottom: 12 }}>
             <table className="table">
@@ -155,36 +149,29 @@ export function GateActions({
         <AddPattern programId={programId} who={who} onDone={() => router.refresh()} />
       </div>
 
-      {/* approve */}
-      <div className="card" style={{ borderColor: ready ? 'var(--accent-dim)' : 'var(--border)' }}>
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Approve Scan</h3>
-        <div className="page-sub" style={{ marginBottom: 12 }}>
-          One click, per program. Expires; does not start a scan.
+      {/* authorize */}
+      <div className="card">
+        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Authorize Scanning</h3>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary"
+            disabled={!ready || busy != null}
+            title="One approved scan for this program. Expires."
+            onClick={() => run('approve', () => apiPost(`/programs/${programId}/approve-scan`, { approvedBy: who }), 'Scan approved.')}
+          >
+            {busy === 'approve' ? 'Approving…' : ready ? 'Approve Once' : 'Clear Flags First'}
+          </button>
+          <button
+            className="btn"
+            disabled={!ready || !allVerified || busy != null}
+            title="Runs Tier 1–2 on its own within limits until it expires. Needs every entry verified."
+            onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Standing authorization signed.')}
+          >
+            {busy === 'preauth' ? 'Signing…' : allVerified && ready ? 'Sign Standing' : 'Verify Entries First'}
+          </button>
         </div>
-        <button
-          className="btn btn-primary"
-          disabled={!ready || busy != null}
-          onClick={() => run('approve', () => apiPost(`/programs/${programId}/approve-scan`, { approvedBy: who }), 'Scan approved.')}
-        >
-          {busy === 'approve' ? 'Approving…' : ready ? 'Approve Scan' : 'Clear Flags to Approve'}
-        </button>
         {ok && <div style={{ color: 'var(--accent)', marginTop: 10, fontSize: 13 }}>{ok}</div>}
         {err && <div style={{ color: 'var(--danger)', marginTop: 10, fontSize: 13 }}>{err}</div>}
-      </div>
-
-      {/* L2 standing authorization */}
-      <div className="card" style={{ borderColor: allVerified && ready ? 'var(--accent-dim)' : 'var(--border)' }}>
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Standing Authorization</h3>
-        <div className="page-sub" style={{ marginBottom: 12 }}>
-          Runs Tier 1–2 within limits until it expires. Every entry must be verified.
-        </div>
-        <button
-          className="btn btn-primary"
-          disabled={!ready || !allVerified || busy != null}
-          onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Standing authorization signed.')}
-        >
-          {busy === 'preauth' ? 'Signing…' : allVerified && ready ? 'Sign Standing Authorization' : 'Verify Every Entry First'}
-        </button>
       </div>
     </div>
   );

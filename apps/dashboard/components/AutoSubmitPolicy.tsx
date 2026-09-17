@@ -44,17 +44,16 @@ export function AutoSubmitPolicy({ programId, policy }: { programId: string; pol
 
   return (
     <div className="card" style={{ borderColor: enabled ? 'var(--accent-dim)' : 'var(--border)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ fontSize: 15 }}>Auto-Submit</h3>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)' }}>
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           {enabled ? <span className="pill pill-accent">on</span> : <span className="pill pill-muted">off</span>}
         </label>
       </div>
-      <div className="page-sub" style={{ marginBottom: 12 }}>
-        Sends reports that clear this bar. High-impact and Critical never auto-submit.
-      </div>
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {!enabled ? null : (
+      <>
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
         <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Min Confidence
           <input className="input" value={minConf} onChange={(e) => setMinConf(e.target.value)} style={{ marginTop: 4 }} />
         </label>
@@ -72,7 +71,9 @@ export function AutoSubmitPolicy({ programId, policy }: { programId: string; pol
         <input type="checkbox" checked={requireChain} onChange={(e) => setRequireChain(e.target.checked)} />
         Require a Chain
       </label>
-      <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save Policy'}</button>
+      </>
+      )}
+      <button className="btn btn-primary" disabled={busy} onClick={save} style={{ marginTop: 12 }}>{busy ? 'Saving…' : 'Save Policy'}</button>
       {msg && <span className="zap" style={{ fontSize: 13, marginLeft: 10 }}>{msg}</span>}
       {err && <span style={{ color: 'var(--danger)', fontSize: 12, marginLeft: 10 }}>{err}</span>}
     </div>
