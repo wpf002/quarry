@@ -67,7 +67,7 @@ export default async function ProgramDetail({
         {/* left: advisory parsed scope */}
         <div className="grid" style={{ gap: 16 }}>
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 4 }}>Parsed scope</h3>
+            <h3 style={{ fontSize: 15, marginBottom: 4 }}>Parsed Scope</h3>
             <div className="page-sub" style={{ marginBottom: 12 }}>
               Advisory only. The parser proposes; it never authorizes a scan.
             </div>
@@ -92,13 +92,13 @@ export default async function ProgramDetail({
             </dl>
           </div>
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 8 }}>Policy (captured)</h3>
+            <h3 style={{ fontSize: 15, marginBottom: 8 }}>Captured Policy</h3>
             <pre style={{ whiteSpace: 'pre-wrap', color: 'var(--muted)', fontSize: 12.5, margin: 0, fontFamily: 'var(--mono)' }}>
               {program.policyRaw || '—'}
             </pre>
           </div>
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 4 }}>Attack surface</h3>
+            <h3 style={{ fontSize: 15, marginBottom: 4 }}>Attack Surface</h3>
             <div className="page-sub" style={{ marginBottom: 12 }}>
               {program.assets.length} asset(s) from passive recon. All default
               out-of-scope until allowlisted.

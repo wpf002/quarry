@@ -26,7 +26,7 @@ export default async function Autopilot() {
     <>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Autopilot <span className="tag">L5</span></h1>
+          <h1 className="page-title">Autopilot</h1>
           <div className="page-sub">Lights-out inside a signed envelope. Any pause trigger halts the whole envelope.</div>
         </div>
       </div>
@@ -37,7 +37,7 @@ export default async function Autopilot() {
         <SignEnvelope eligible={eligible} />
 
         {envelopes.length === 0 ? (
-          <EmptyState title="No envelopes signed">Sign one above to run the autopilot.</EmptyState>
+          <EmptyState title="No Envelopes Signed">Sign one above to run the autopilot.</EmptyState>
         ) : (
           <div className="table-wrap">
             <table className="table">

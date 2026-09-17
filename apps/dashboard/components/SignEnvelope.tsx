@@ -35,7 +35,7 @@ export function SignEnvelope({ eligible }: { eligible: Eligible[] }) {
 
   return (
     <div className="card">
-      <h3 style={{ fontSize: 15, marginBottom: 4 }}>Sign a new envelope</h3>
+      <h3 style={{ fontSize: 15, marginBottom: 4 }}>Sign a New Envelope</h3>
       <div className="page-sub" style={{ marginBottom: 12 }}>
         Only ownership-verified, gate-ready programs are eligible. Inside a live
         envelope the autopilot runs scan {autoSubmit ? '+ auto-submit' : ''} within limits.

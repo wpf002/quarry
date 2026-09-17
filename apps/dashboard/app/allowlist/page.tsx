@@ -29,7 +29,7 @@ export default async function AllowlistPage() {
       </div>
 
       {entries.length === 0 ? (
-        <EmptyState title="Nothing allowlisted yet">
+        <EmptyState title="Nothing Allowlisted Yet">
           Open a program and add confirmed in-scope patterns by hand.
         </EmptyState>
       ) : (

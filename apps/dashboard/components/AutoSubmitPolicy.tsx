@@ -45,7 +45,7 @@ export function AutoSubmitPolicy({ programId, policy }: { programId: string; pol
   return (
     <div className="card" style={{ borderColor: enabled ? 'var(--accent-dim)' : 'var(--border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h3 style={{ fontSize: 15 }}>Auto-submit <span className="tag">L3</span></h3>
+        <h3 style={{ fontSize: 15 }}>Auto-Submit</h3>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)' }}>
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           {enabled ? <span className="pill pill-accent">on</span> : <span className="pill pill-muted">off</span>}

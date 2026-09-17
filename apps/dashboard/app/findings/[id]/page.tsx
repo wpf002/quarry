@@ -42,7 +42,7 @@ export default async function FindingDetail({ params }: { params: Promise<{ id: 
       <div className="grid" style={{ gridTemplateColumns: '1.3fr 1fr', gap: 20, alignItems: 'start' }}>
         <div className="grid" style={{ gap: 16 }}>
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 12 }}>Reproducible trace</h3>
+            <h3 style={{ fontSize: 15, marginBottom: 12 }}>Reproducible Trace</h3>
             {steps.length === 0 ? (
               <div style={{ color: 'var(--faint)' }}>No recorded steps yet.</div>
             ) : (
@@ -83,7 +83,7 @@ export default async function FindingDetail({ params }: { params: Promise<{ id: 
             </dl>
           </div>
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 10 }}>Chained with</h3>
+            <h3 style={{ fontSize: 15, marginBottom: 10 }}>Chained With</h3>
             {chained.length === 0 ? (
               <div style={{ color: 'var(--faint)' }}>Standalone finding.</div>
             ) : (

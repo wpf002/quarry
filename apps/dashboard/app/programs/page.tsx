@@ -27,7 +27,7 @@ export default async function Programs() {
       </div>
 
       {programs.length === 0 ? (
-        <EmptyState title="No programs yet">
+        <EmptyState title="No Programs Yet">
           Run the worker to poll platforms, or seed the database with{' '}
           <code>pnpm --filter @quarry/db seed</code>.
         </EmptyState>

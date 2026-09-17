@@ -62,7 +62,7 @@ export function GateActions({
 
       {/* ambiguity */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Ambiguity flags</h3>
+        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Ambiguity Flags</h3>
         <div className="page-sub" style={{ marginBottom: 12 }}>
           Every flag must be cleared before the program can be approved.
         </div>
@@ -158,7 +158,7 @@ export function GateActions({
 
       {/* approve */}
       <div className="card" style={{ borderColor: ready ? 'var(--accent-dim)' : 'var(--border)' }}>
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Approve scan</h3>
+        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Approve Scan</h3>
         <div className="page-sub" style={{ marginBottom: 12 }}>
           One click, per program, expiring. Writes a ScanApproval — it does not
           start a scan.
@@ -176,7 +176,7 @@ export function GateActions({
 
       {/* L2 standing authorization */}
       <div className="card" style={{ borderColor: allVerified && ready ? 'var(--accent-dim)' : 'var(--border)' }}>
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Standing authorization <span className="tag">L2</span></h3>
+        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Standing Authorization</h3>
         <div className="page-sub" style={{ marginBottom: 12 }}>
           Sign once; the scheduler runs Tier 1/2 scans within limits without
           re-asking. Requires every allowlist entry ownership-verified.

@@ -54,14 +54,14 @@ export default async function MetricsPage() {
       )}
 
       <div className="grid grid-4" style={{ marginBottom: 22 }}>
-        <Stat label="Total findings" value={metrics.totalFindings} />
-        <Stat label="Valid rate" value={`${Math.round(metrics.outcomes.validRate * 100)}%`} hint={`${metrics.outcomes.decided} decided`} />
-        <Stat label="Duplicate rate" value={`${Math.round(metrics.outcomes.dupRate * 100)}%`} hint="lower is better" />
-        <Stat label="Total revenue" value={`$${metrics.totalRevenueUsd.toLocaleString()}`} hint="resolved payouts" />
+        <Stat label="Total Findings" value={metrics.totalFindings} />
+        <Stat label="Valid Rate" value={`${Math.round(metrics.outcomes.validRate * 100)}%`} hint={`${metrics.outcomes.decided} decided`} />
+        <Stat label="Duplicate Rate" value={`${Math.round(metrics.outcomes.dupRate * 100)}%`} hint="lower is better" />
+        <Stat label="Total Revenue" value={`$${metrics.totalRevenueUsd.toLocaleString()}`} hint="resolved payouts" />
       </div>
 
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 14 }}>Revenue by vuln class</h3>
+        <h3 style={{ fontSize: 15, marginBottom: 14 }}>Revenue by Vuln Class</h3>
         {revenue.length === 0 ? (
           <div style={{ color: 'var(--faint)' }}>No payouts recorded yet.</div>
         ) : (

@@ -5,19 +5,17 @@ import Link from 'next/link';
 const NAV = [
   { section: 'Autonomous' },
   { href: '/', label: 'Overview' },
-  { href: '/digest', label: 'Digest' },
-  { href: '/inbox', label: 'Review inbox' },
+  { href: '/inbox', label: 'Review Inbox' },
   { href: '/programs', label: 'Programs' },
   { href: '/findings', label: 'Findings' },
-  { href: '/queue', label: 'Report queue' },
+  { href: '/queue', label: 'Report Queue' },
   { href: '/metrics', label: 'Metrics' },
-  { section: 'Human gate' },
+  { section: 'Human Gate' },
   { href: '/allowlist', label: 'Allowlist' },
-  { href: '/approvals', label: 'Scan approvals' },
-  { href: '/autonomy', label: 'Autonomy (L2)' },
-  { href: '/autopilot', label: 'Autopilot (L5)' },
+  { href: '/autonomy', label: 'Authorizations' },
+  { href: '/autopilot', label: 'Autopilot' },
   { section: 'Trace' },
-  { href: '/audit', label: 'Audit log' },
+  { href: '/audit', label: 'Audit Log' },
 ];
 
 export function Sidebar() {

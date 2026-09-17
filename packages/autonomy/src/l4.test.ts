@@ -42,7 +42,7 @@ test('buildDigest: needsYou counts proposals + reports + paused', () => {
     revenueUsd: 1500,
   });
   assert.equal(d.needsYou, 1 + 2 + 1); // 1 program with proposals + 2 reports + 1 paused
-  assert.match(d.headline, /need you/);
+  assert.match(d.headline, /Waiting on you/);
 });
 
 test('buildDigest: all clear when nothing is pending', () => {

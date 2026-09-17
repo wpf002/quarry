@@ -43,7 +43,7 @@ export default async function Inbox() {
     <>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Review inbox</h1>
+          <h1 className="page-title">Review Inbox</h1>
           <div className="page-sub">
             One place to give consent. Discovery finds and drafts; you approve
             scans and release reports in bulk.

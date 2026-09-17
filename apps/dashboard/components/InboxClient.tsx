@@ -77,7 +77,7 @@ export function InboxClient({
       {/* programs ready to approve */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ fontSize: 15 }}>Ready to approve <span className="tag">{ready.length}</span></h3>
+          <h3 style={{ fontSize: 15 }}>Ready to Approve <span className="tag">{ready.length}</span></h3>
           <button className="btn btn-primary btn-sm" disabled={busy || progSel.size === 0} onClick={approveSelected}>
             Approve {progSel.size || ''} scan{progSel.size === 1 ? '' : 's'}
           </button>
@@ -99,7 +99,7 @@ export function InboxClient({
       {/* reports held for review */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ fontSize: 15 }}>Held reports <span className="tag">{reports.length}</span></h3>
+          <h3 style={{ fontSize: 15 }}>Held Reports <span className="tag">{reports.length}</span></h3>
           <button className="btn btn-primary btn-sm" disabled={busy || repSel.size === 0} onClick={submitSelected}>
             Submit {repSel.size || ''}
           </button>
@@ -124,7 +124,7 @@ export function InboxClient({
       {/* needs attention */}
       {pending.length > 0 && (
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 4 }}>Needs your confirmation <span className="tag">{pending.length}</span></h3>
+          <h3 style={{ fontSize: 15, marginBottom: 4 }}>Needs Your Confirmation <span className="tag">{pending.length}</span></h3>
           <div className="page-sub" style={{ marginBottom: 12 }}>Clear flags and confirm in-scope assets before these can be approved.</div>
           {pending.map((p) => (
             <Link key={p.id} href={`/programs/${p.id}`} className="callout" style={{ justifyContent: 'space-between', marginBottom: 8 }}>

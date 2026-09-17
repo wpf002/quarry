@@ -20,7 +20,7 @@ export default async function AuditPage() {
     <>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Audit log</h1>
+          <h1 className="page-title">Audit Log</h1>
           <div className="page-sub">
             Append-only. Every scope verdict, gate pass/refusal, approval, and
             active run is recorded with actor and detail.
@@ -29,7 +29,7 @@ export default async function AuditPage() {
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState title="No audit entries yet">
+        <EmptyState title="No Audit Entries Yet">
           Scope decisions and gate checks appear here as the system runs.
         </EmptyState>
       ) : (

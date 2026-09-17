@@ -31,16 +31,16 @@ export default async function Queue() {
     <>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Report queue</h1>
+          <h1 className="page-title">Report Queue</h1>
           <div className="page-sub">
-            Everything lands held for review. Nothing auto-submits — a human
+            Everything lands held for review. Nothing auto-submits; a human
             reads every report before it goes out.
           </div>
         </div>
       </div>
 
       {subs.length === 0 ? (
-        <EmptyState title="Queue is empty">
+        <EmptyState title="Queue Is Empty">
           Drafted reports appear here as findings clear the quality gate.
         </EmptyState>
       ) : (

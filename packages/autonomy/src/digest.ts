@@ -16,14 +16,19 @@ export interface Digest extends DigestInput {
 }
 
 export function buildDigest(input: DigestInput): Digest {
-  const needsYou =
-    input.proposalsByProgram.reduce((n, p) => n + (p.count > 0 ? 1 : 0), 0) +
-    input.queuedReports +
-    input.pausedAuths.length;
+  const allowlists = input.proposalsByProgram.filter((p) => p.count > 0).length;
+  const needsYou = allowlists + input.queuedReports + input.pausedAuths.length;
+
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const parts: string[] = [];
+  if (allowlists) parts.push(`${plural(allowlists, 'allowlist', 'allowlists')} to confirm`);
+  if (input.queuedReports) parts.push(`${plural(input.queuedReports, 'report', 'reports')} to review`);
+  if (input.pausedAuths.length) parts.push(plural(input.pausedAuths.length, 'paused authorization', 'paused authorizations'));
+
   const headline =
     needsYou === 0
-      ? 'All clear — nothing needs your sign-off.'
-      : `${needsYou} item(s) need you: ${input.proposalsByProgram.filter((p) => p.count > 0).length} allowlist(s) to confirm, ${input.queuedReports} report(s) to review, ${input.pausedAuths.length} paused auth(s).`;
+      ? 'All clear. Nothing needs your sign-off.'
+      : `Waiting on you: ${parts.join(', ')}.`;
   return { ...input, headline, needsYou };
 }
 

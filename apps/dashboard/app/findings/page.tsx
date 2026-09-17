@@ -31,7 +31,7 @@ export default async function Findings() {
       </div>
 
       {findings.length === 0 ? (
-        <EmptyState title="No findings yet">
+        <EmptyState title="No Findings Yet">
           Passive findings appear here once the analyzer has triaged them.
         </EmptyState>
       ) : (
