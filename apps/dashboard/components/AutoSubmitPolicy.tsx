@@ -57,24 +57,24 @@ export function AutoSubmitPolicy({ programId, policy }: { programId: string; pol
         valid-rate drops.
       </div>
       <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Min confidence
+        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Min Confidence
           <input className="input" value={minConf} onChange={(e) => setMinConf(e.target.value)} style={{ marginTop: 4 }} />
         </label>
-        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Max dup risk
+        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Max Dup Risk
           <input className="input" value={maxDup} onChange={(e) => setMaxDup(e.target.value)} style={{ marginTop: 4 }} />
         </label>
-        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Daily cap
+        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Daily Cap
           <input className="input" value={cap} onChange={(e) => setCap(e.target.value)} style={{ marginTop: 4 }} />
         </label>
-        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Allowed classes (blank = any safe)
+        <label style={{ fontSize: 12.5, color: 'var(--muted)' }}>Allowed Classes (Blank = Any Safe)
           <input className="input" value={classes} onChange={(e) => setClasses(e.target.value)} placeholder="git-exposure, public-bucket" style={{ marginTop: 4 }} />
         </label>
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--muted)', fontSize: 13, margin: '10px 0' }}>
         <input type="checkbox" checked={requireChain} onChange={(e) => setRequireChain(e.target.checked)} />
-        Require a chain
+        Require a Chain
       </label>
-      <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save policy'}</button>
+      <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save Policy'}</button>
       {msg && <span className="zap" style={{ fontSize: 13, marginLeft: 10 }}>{msg}</span>}
       {err && <span style={{ color: 'var(--danger)', fontSize: 12, marginLeft: 10 }}>{err}</span>}
     </div>

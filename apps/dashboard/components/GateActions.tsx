@@ -51,7 +51,7 @@ export function GateActions({
     <div className="grid" style={{ gap: 16 }}>
       {/* identity */}
       <div className="card">
-        <div className="stat-label">Acting as (human identity)</div>
+        <div className="stat-label">Acting As (Human Identity)</div>
         <input
           className="input"
           value={who}
@@ -168,7 +168,7 @@ export function GateActions({
           disabled={!ready || busy != null}
           onClick={() => run('approve', () => apiPost(`/programs/${programId}/approve-scan`, { approvedBy: who }), 'Scan approved.')}
         >
-          {busy === 'approve' ? 'Approving…' : ready ? 'Approve scan' : 'Blocked — clear flags + add allowlist'}
+          {busy === 'approve' ? 'Approving…' : ready ? 'Approve Scan' : 'Clear Flags to Approve'}
         </button>
         {ok && <div style={{ color: 'var(--accent)', marginTop: 10, fontSize: 13 }}>{ok}</div>}
         {err && <div style={{ color: 'var(--danger)', marginTop: 10, fontSize: 13 }}>{err}</div>}
@@ -186,7 +186,7 @@ export function GateActions({
           disabled={!ready || !allVerified || busy != null}
           onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Standing authorization signed.')}
         >
-          {busy === 'preauth' ? 'Signing…' : allVerified && ready ? 'Sign standing authorization' : 'Verify every entry first'}
+          {busy === 'preauth' ? 'Signing…' : allVerified && ready ? 'Sign Standing Authorization' : 'Verify Every Entry First'}
         </button>
       </div>
     </div>

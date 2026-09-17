@@ -39,7 +39,7 @@ export default async function Autopilot() {
 
       <SignEnvelope eligible={eligible} />
 
-      <h3 style={{ fontSize: 15, margin: '24px 0 12px' }}>Envelopes</h3>
+      <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Envelopes</h3>
       {envelopes.length === 0 ? (
         <EmptyState title="No Envelopes Signed">Sign one above to run the autopilot.</EmptyState>
       ) : (
@@ -73,7 +73,7 @@ export default async function Autopilot() {
         </div>
       )}
 
-      <h3 style={{ fontSize: 15, margin: '0 0 12px' }}>Standing Authorizations</h3>
+      <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Standing Authorizations</h3>
       {preauths.length === 0 ? (
         <EmptyState title="No Standing Authorizations">Sign an envelope, or authorize a single program from its page.</EmptyState>
       ) : (
@@ -108,7 +108,7 @@ export default async function Autopilot() {
         </div>
       )}
 
-      <h3 style={{ fontSize: 15, margin: '0 0 12px' }}>Scan Approvals</h3>
+      <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Scan Approvals</h3>
       {approvals.length === 0 ? (
         <EmptyState title="No Approvals Yet">Approvals are created when you approve a program or sign an envelope.</EmptyState>
       ) : (

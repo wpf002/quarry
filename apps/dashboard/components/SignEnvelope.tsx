@@ -37,8 +37,8 @@ export function SignEnvelope({ eligible }: { eligible: Eligible[] }) {
     <div className="card">
       <h3 style={{ fontSize: 15, marginBottom: 4 }}>Sign a New Envelope</h3>
       <div className="page-sub" style={{ marginBottom: 12 }}>
-        Only ownership-verified, gate-ready programs are eligible. Inside a live
-        envelope the autopilot runs scan {autoSubmit ? '+ auto-submit' : ''} within limits.
+        Only programs with a verified allowlist show up here. Signing runs them
+        until the envelope expires or a breaker trips.
       </div>
       {eligible.length === 0 ? (
         <div style={{ color: 'var(--faint)' }}>No eligible programs. Verify allowlists first.</div>
@@ -54,13 +54,13 @@ export function SignEnvelope({ eligible }: { eligible: Eligible[] }) {
           </div>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)' }}>
-              <input type="checkbox" checked={autoSubmit} onChange={(e) => setAutoSubmit(e.target.checked)} /> auto-submit
+              <input type="checkbox" checked={autoSubmit} onChange={(e) => setAutoSubmit(e.target.checked)} /> Auto-Submit
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)' }}>
               expires in <input className="input" value={days} onChange={(e) => setDays(e.target.value.replace(/[^\d]/g, ''))} style={{ width: 60 }} /> days
             </label>
             <button className="btn btn-primary" disabled={busy || sel.size === 0} onClick={sign}>
-              {busy ? 'Signing…' : `Sign envelope (${sel.size})`}
+              {busy ? 'Signing…' : `Sign Envelope (${sel.size})`}
             </button>
           </div>
           {msg && <div className="zap" style={{ fontSize: 13, marginTop: 10 }}>{msg}</div>}

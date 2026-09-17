@@ -98,7 +98,7 @@ export default async function Findings() {
         </div>
       )}
 
-      <h3 style={{ fontSize: 15, margin: '28px 0 12px' }}>Reports</h3>
+      <h3 style={{ fontSize: 15, margin: '32px 0 14px' }}>Reports</h3>
       {subs.length === 0 ? (
         <EmptyState title="No Reports Yet">
           Drafted reports land here held for review. Record the platform outcome

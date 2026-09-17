@@ -7,7 +7,7 @@ const OUTCOMES: Array<{ state: string; label: string }> = [
   { state: 'SUBMITTED', label: 'Submitted' },
   { state: 'RESOLVED', label: 'Paid' },
   { state: 'DUPLICATE', label: 'Duplicate' },
-  { state: 'OUT_OF_SCOPE', label: 'Out of scope' },
+  { state: 'OUT_OF_SCOPE', label: 'Out of Scope' },
   { state: 'INFORMATIVE', label: 'Informative' },
 ];
 

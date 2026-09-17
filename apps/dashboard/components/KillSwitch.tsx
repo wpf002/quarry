@@ -20,7 +20,7 @@ export function KillSwitch({ initialEngaged }: { initialEngaged: boolean }) {
     <div className="card" style={{ borderColor: engaged ? 'var(--danger)' : 'var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <div>
         <div style={{ fontWeight: 600 }}>
-          Global kill switch{' '}
+          Global Kill Switch{' '}
           {engaged ? <span className="pill pill-danger">engaged</span> : <span className="pill pill-accent">off</span>}
         </div>
         <div className="page-sub" style={{ marginTop: 2 }}>
@@ -30,7 +30,7 @@ export function KillSwitch({ initialEngaged }: { initialEngaged: boolean }) {
         {err && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>{err}</div>}
       </div>
       <button className={engaged ? 'btn btn-primary' : 'btn btn-ghost'} disabled={busy} onClick={toggle}>
-        {busy ? '…' : engaged ? 'Disengage' : 'Engage kill switch'}
+        {busy ? '…' : engaged ? 'Disengage' : 'Engage Kill Switch'}
       </button>
     </div>
   );
