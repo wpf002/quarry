@@ -37,6 +37,7 @@ const PAYABLE_CLASSES = [
   'open-redirect', 'cors-misconfig', 'cors-misconfiguration', 'csrf',
   'ssti', 'xxe', 'lfi', 'rfi', 'deserialization', 'path-traversal', 'file-upload',
   'exposed-panel',
+  'graphql-introspection', 'jwt-weakness',
   'zap-alert', // ZAP active-scan alerts: real vuln classes (xss, injection, …)
 ];
 
