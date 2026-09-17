@@ -83,25 +83,37 @@ export async function runActiveScanBatch(
   return out;
 }
 
+// Classes that are enumeration, not vulnerabilities. Infiltr sometimes emits a
+// "finding" per discovered URL; those belong in assets, not the findings list.
+const ENDPOINT_CLASSES = new Set(['discovered-endpoint']);
+
 // Results flow back as ACTIVE_SCAN assets and Finding rows, ready for the
 // analyzer + quality gate.
 async function persistActiveResult(
   programId: string,
   result: InfiltrResult,
 ): Promise<void> {
-  // Bulk insert — one round-trip each, not one per row. A scan can return
-  // thousands of findings; per-row inserts were the main source of slowness.
-  if (result.assets.length > 0) {
+  // Route endpoint-enumeration "findings" into assets so they don't flood the
+  // findings list; keep only real findings.
+  const realFindings = result.findings.filter((f) => !ENDPOINT_CLASSES.has(f.vulnClass));
+  const endpointUrls = result.findings
+    .filter((f) => ENDPOINT_CLASSES.has(f.vulnClass))
+    .map((f) => (f.evidence as { url?: unknown })?.url)
+    .filter((u): u is string => typeof u === 'string' && u.length > 0);
+  const assetValues = [...new Set([...result.assets, ...endpointUrls])];
+
+  // Bulk insert — one round-trip each, not one per row.
+  if (assetValues.length > 0) {
     await prisma.asset.createMany({
-      data: result.assets.map((value) => ({
+      data: assetValues.map((value) => ({
         programId, value, verdict: 'OUT_OF_SCOPE' as const, verdictBy: 'infiltr', source: 'ACTIVE_SCAN' as const,
       })),
       skipDuplicates: true,
     });
   }
-  if (result.findings.length > 0) {
+  if (realFindings.length > 0) {
     await prisma.finding.createMany({
-      data: result.findings.map((f) => ({
+      data: realFindings.map((f) => ({
         programId,
         title: f.title,
         vulnClass: f.vulnClass,
@@ -119,7 +131,7 @@ async function persistActiveResult(
     action: 'scan.results',
     programId,
     target: result.target,
-    detail: { assets: result.assets.length, findings: result.findings.length },
+    detail: { assets: assetValues.length, findings: realFindings.length, endpointsRerouted: endpointUrls.length },
   });
 }
 
