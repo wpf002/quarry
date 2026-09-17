@@ -20,7 +20,7 @@ export default async function AuditPage() {
     <>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Audit Log</h1>
+          <h1 className="page-title">Audit</h1>
           <div className="page-sub">
             Append-only. Every scope verdict, gate pass/refusal, approval, and
             active run is recorded with actor and detail.

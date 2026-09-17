@@ -7,7 +7,7 @@ const NAV = [
   { href: '/programs', label: 'Programs' },
   { href: '/findings', label: 'Findings' },
   { href: '/autopilot', label: 'Autopilot' },
-  { href: '/audit', label: 'Audit Log' },
+  { href: '/audit', label: 'Audit' },
 ];
 
 export function Sidebar() {
