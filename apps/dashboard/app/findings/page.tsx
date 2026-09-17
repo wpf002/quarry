@@ -19,13 +19,20 @@ const STATE_PILL: Record<string, string> = {
   REJECTED: 'pill-danger',
 };
 
-export default async function Findings() {
-  const [findings, subs] = await Promise.all([
+const PAGE_SIZE = 50;
+const fmt = (d: Date) => new Date(d).toISOString().slice(0, 16).replace('T', ' ');
+
+export default async function Findings({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp?.page ?? '1') || 1);
+  const [total, findings, subs] = await Promise.all([
+    safe(() => prisma.finding.count(), 0),
     safe(
       () =>
         prisma.finding.findMany({
-          orderBy: [{ severity: 'desc' }, { confidence: 'desc' }],
-          take: 200,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * PAGE_SIZE,
+          take: PAGE_SIZE,
           include: { program: true },
         }),
       [] as any[],
@@ -40,6 +47,7 @@ export default async function Findings() {
       [] as any[],
     ),
   ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -63,6 +71,7 @@ export default async function Findings() {
             <thead>
               <tr>
                 <th>Finding</th>
+                <th>Found</th>
                 <th>Severity</th>
                 <th>Confidence</th>
                 <th>Gate</th>
@@ -81,6 +90,7 @@ export default async function Findings() {
                         </div>
                       </Link>
                     </td>
+                    <td className="mono" style={{ color: 'var(--faint)', whiteSpace: 'nowrap' }}>{fmt(f.createdAt)}</td>
                     <td><SeverityPill severity={f.severity} /></td>
                     <td><ConfidenceBand value={f.confidence} /></td>
                     <td>
@@ -93,6 +103,13 @@ export default async function Findings() {
               })}
             </tbody>
           </table>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
+            <span className="page-sub">{total.toLocaleString()} findings · page {page} of {totalPages}</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {page > 1 && <Link className="btn btn-sm" href={`/findings?page=${page - 1}`}>← Prev</Link>}
+              {page < totalPages && <Link className="btn btn-sm" href={`/findings?page=${page + 1}`}>Next →</Link>}
+            </div>
+          </div>
         </div>
       )}
 
