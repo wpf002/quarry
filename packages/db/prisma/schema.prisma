@@ -88,7 +88,6 @@ model Program {
   preauths   PreAuthorization[]
   autoSubmit AutoSubmitPolicy?
   findings   Finding[]
-  tier3Queue Tier3Candidate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,27 +166,6 @@ model Finding {
   humanConfirmed Boolean  @default(false)
   report         Report?
   createdAt      DateTime @default(now())
-}
-
-// A queued high-impact (Tier 3) pass a human can approve in one action. The
-// worker fills this from Tier 1/2 signals; NOTHING here runs until a human
-// approves it, and each run still passes the per-target gate.
-model Tier3Candidate {
-  id        String    @id @default(cuid())
-  program   Program   @relation(fields: [programId], references: [id])
-  programId String
-  target    String
-  reason    String // vuln classes that make a Tier-3 pass worthwhile
-  state     String    @default("PENDING") // PENDING | RAN | FAILED | DISMISSED
-  assets    Int? // result counts after a run
-  findings  Int?
-  error     String?
-  decidedBy String?
-  decidedAt DateTime?
-  createdAt DateTime  @default(now())
-
-  @@unique([programId, target])
-  @@index([state])
 }
 
 model Report {

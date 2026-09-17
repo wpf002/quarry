@@ -27,7 +27,8 @@ export function GateActions({
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
-  const [scanTier, setScanTier] = useState<1 | 2 | 3>(1);
+  const [scanTier, setScanTier] = useState<1 | 2>(1);
+  const [prog, setProg] = useState<{ done: number; total: number } | null>(null);
 
   const active = allowlist.filter((e) => e.active);
   const allVerified = active.length > 0 && active.every((e) => e.ownershipVerified);
@@ -64,24 +65,16 @@ export function GateActions({
           <h3 style={{ fontSize: 15 }}>Targets</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span className="scope-label" style={{ margin: 0 }}>Scan tier</span>
-            {[1, 2, 3].map((t) => {
-              const on = scanTier === t;
-              return (
-                <button
-                  key={t}
-                  className={`btn btn-sm${on && t !== 3 ? ' btn-primary' : ''}`}
-                  style={on && t === 3 ? { background: 'var(--danger)', borderColor: 'var(--danger)', color: '#1a0e12' } : undefined}
-                  onClick={() => setScanTier(t as 1 | 2 | 3)}
-                  title={
-                    t === 1 ? 'Passive / safe checks'
-                      : t === 2 ? 'Low-impact active checks'
-                        : 'High-impact exploitation — you confirm each scan, never automated'
-                  }
-                >
-                  T{t}
-                </button>
-              );
-            })}
+            {[1, 2].map((t) => (
+              <button
+                key={t}
+                className={`btn btn-sm${scanTier === t ? ' btn-primary' : ''}`}
+                onClick={() => setScanTier(t as 1 | 2)}
+                title={t === 1 ? 'Passive / safe checks' : 'Low-impact active checks'}
+              >
+                T{t}
+              </button>
+            ))}
           </div>
         </div>
         {active.length > 0 && (
@@ -104,39 +97,10 @@ export function GateActions({
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: 6 }}>
-                        {e.ownershipVerified && (
-                          <button
-                            className="btn btn-sm"
-                            disabled={busy != null}
-                            title="Run one scan on this host via Infiltr, at the selected tier. Needs an active authorization."
-                            onClick={async () => {
-                              if (scanTier === 3 && !window.confirm(
-                                `Tier 3 runs a high-impact exploitation check against ${e.pattern}. Only run it on a host you own that the program authorizes for active testing. Continue?`,
-                              )) return;
-                              setBusy('scan' + e.id); setErr(null); setOk(null);
-                              try {
-                                const r = await apiPost<{ assets: number; findings: number }>(
-                                  `/programs/${programId}/scan-target`,
-                                  { target: e.pattern, tier: scanTier, confirm: scanTier === 3 },
-                                );
-                                setOk(`Scanned ${e.pattern} (Tier ${scanTier}): ${r.findings} finding(s), ${r.assets} asset(s).`);
-                                router.refresh();
-                              } catch (err) {
-                                setErr((err as Error).message);
-                              } finally {
-                                setBusy(null);
-                              }
-                            }}
-                          >
-                            {busy === 'scan' + e.id ? 'Scanning…' : 'Scan'}
-                          </button>
-                        )}
-                        <button className="btn btn-sm btn-ghost" disabled={busy != null}
-                          onClick={() => run('del' + e.id, () => apiPost(`/programs/${programId}/allowlist/${e.id}/deactivate`, { by: who }))}>
-                          Remove
-                        </button>
-                      </div>
+                      <button className="btn btn-sm btn-ghost" disabled={busy != null}
+                        onClick={() => run('del' + e.id, () => apiPost(`/programs/${programId}/allowlist/${e.id}/deactivate`, { by: who }))}>
+                        Remove
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -181,11 +145,38 @@ export function GateActions({
               <button
                 className="btn btn-primary"
                 disabled={busy != null}
-                title="Authorize Quarry to run Tier 1–2 scans on the verified hosts, within limits, until it expires."
-                onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Authorized. Quarry can now run this program.')}
+                title="Run a scan on every verified target at the selected tier."
+                onClick={async () => {
+                  setBusy('scan'); setErr(null); setOk(null);
+                  setProg({ done: 0, total: active.length });
+                  let findings = 0, assets = 0;
+                  const fails: string[] = [];
+                  for (let i = 0; i < active.length; i++) {
+                    const e = active[i];
+                    try {
+                      const r = await apiPost<{ assets: number; findings: number }>(
+                        `/programs/${programId}/scan-target`,
+                        { target: e.pattern, tier: scanTier },
+                      );
+                      findings += r.findings; assets += r.assets;
+                    } catch (err) {
+                      fails.push(`${e.pattern}: ${(err as Error).message}`);
+                    }
+                    setProg({ done: i + 1, total: active.length });
+                  }
+                  setBusy(null); setProg(null);
+                  if (fails.length) setErr(fails.join(' · '));
+                  setOk(`Scanned ${active.length - fails.length}/${active.length} target(s) at Tier ${scanTier}: ${findings} finding(s), ${assets} asset(s).`);
+                  router.refresh();
+                }}
               >
-                {busy === 'preauth' ? 'Authorizing…' : 'Authorize Scanning'}
+                {busy === 'scan' ? `Scanning… ${prog ? `${prog.done}/${prog.total}` : ''}` : 'Run Scan'}
               </button>
+            )}
+            {busy === 'scan' && prog && (
+              <div style={{ flexBasis: '100%', height: 6, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${prog.total ? (prog.done / prog.total) * 100 : 0}%`, background: 'var(--accent)', transition: 'width 0.2s ease' }} />
+              </div>
             )}
             {ok && <span style={{ color: 'var(--accent)', fontSize: 13 }}>{ok}</span>}
             {err && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{err}</span>}

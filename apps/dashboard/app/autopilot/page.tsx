@@ -5,7 +5,6 @@ import { KillSwitch } from '../../components/KillSwitch';
 import { SignCampaign } from '../../components/SignCampaign';
 import { PauseCampaign } from '../../components/PauseCampaign';
 import { RevokePreauth } from '../../components/RevokePreauth';
-import { Tier3Queue } from '../../components/Tier3Queue';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +36,6 @@ export default async function Autopilot() {
       </div>
 
       <div style={{ marginBottom: 18 }}><KillSwitch initialEngaged={killed} /></div>
-
-      <div style={{ marginBottom: 18 }}><Tier3Queue /></div>
 
       <SignCampaign eligible={eligible} />
 

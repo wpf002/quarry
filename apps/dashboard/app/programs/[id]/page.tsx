@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma, safe } from '../../../lib/db';
-import { PlatformPill, PriorityBar } from '../../../components/ui';
+import { PlatformPill } from '../../../components/ui';
 import { GateActions } from '../../../components/GateActions';
 import { AutoSubmitPolicy } from '../../../components/AutoSubmitPolicy';
 
@@ -66,9 +66,6 @@ export default async function ProgramDetail({
             <span className="mono">{program.handle}</span>{' '}
             <PlatformPill platform={program.platform} />
           </div>
-        </div>
-        <div style={{ minWidth: 180 }}>
-          <PriorityBar value={program.score} />
         </div>
       </div>
 

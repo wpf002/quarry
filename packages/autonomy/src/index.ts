@@ -8,4 +8,3 @@ export * from './digest.js';
 export * from './cost.js';
 export * from './campaign.js';
 export * from './live-verify.js';
-export * from './tier3.js';
