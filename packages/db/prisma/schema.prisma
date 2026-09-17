@@ -176,6 +176,7 @@ model ScanContext {
   id                String   @id @default(cuid())
   program           Program  @relation(fields: [programId], references: [id])
   programId         String   @unique
+  scanAuthHeaders   Json? // scan-wide session for authenticated testing: { "Cookie": "..." }
   idorVictimHeaders Json? // { "Cookie": "session=..." }
   idorVictimId      String?
   idorIdParam       String?

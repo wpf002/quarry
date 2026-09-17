@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { apiPost } from '../lib/api';
 
 type Initial = {
+  hasScanAuth: boolean;
   hasIdorHeaders: boolean;
   idorVictimId: string | null;
   idorIdParam: string | null;
@@ -26,6 +27,7 @@ function parseHeaders(text: string): Record<string, string> {
 
 export function ScanContextForm({ programId, initial }: { programId: string; initial: Initial }) {
   const router = useRouter();
+  const [authHeaders, setAuthHeaders] = useState('');
   const [headers, setHeaders] = useState('');
   const [victimId, setVictimId] = useState(initial.idorVictimId ?? '');
   const [idParam, setIdParam] = useState(initial.idorIdParam ?? '');
@@ -39,7 +41,7 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
     setBusy(true); setErr(null); setMsg(null);
     try {
       await apiPost(`/programs/${programId}/scan-context`, { by: 'will', ...payload });
-      setHeaders('');
+      setHeaders(''); setAuthHeaders('');
       if (clear) { setVictimId(''); setIdParam(''); }
       setMsg(okMsg);
       router.refresh();
@@ -48,7 +50,8 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
   };
 
   const save = () => {
-    const parsed = parseHeaders(headers);
+    const parsedIdor = parseHeaders(headers);
+    const parsedAuth = parseHeaders(authHeaders);
     const payload: Record<string, unknown> = {
       idorVictimId: victimId || null,
       idorIdParam: idParam || null,
@@ -56,7 +59,8 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
       ssrfWait: wait ? Number(wait) : null,
     };
     // Only send headers when the user typed some; blank keeps the saved ones.
-    if (Object.keys(parsed).length > 0) payload.idorVictimHeaders = parsed;
+    if (Object.keys(parsedIdor).length > 0) payload.idorVictimHeaders = parsedIdor;
+    if (Object.keys(parsedAuth).length > 0) payload.scanAuthHeaders = parsedAuth;
     run(payload, 'Saved.');
   };
 
@@ -67,15 +71,34 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
       true,
     );
 
+  const clearAuth = () => run({ scanAuthHeaders: null }, 'Scan session cleared.');
+
   return (
     <details className="card">
       <summary className="scope-summary">IDOR / SSRF context (optional)</summary>
       <div className="page-sub" style={{ margin: '10px 0 14px' }}>
-        Extra inputs some paid checks need. IDOR needs a second account&apos;s session; SSRF needs a host the
-        target can reach your Infiltr at. Stored locally, sent only to your Infiltr.
+        Extra inputs some paid checks need. All stored locally, sent only to your Infiltr.
       </div>
 
       <div className="scope-label">
+        Scan session — authenticated testing
+        {initial.hasScanAuth && <span className="pill pill-accent" style={{ marginLeft: 6 }}>saved</span>}
+      </div>
+      <div className="page-sub" style={{ margin: '2px 0 4px' }}>
+        A logged-in session applied to every check, so Quarry scans authenticated surface (where most paid bugs are).
+      </div>
+      <textarea
+        className="input"
+        rows={3}
+        placeholder={initial.hasScanAuth
+          ? 'A session is saved. Paste new headers to replace it, or leave blank to keep.'
+          : 'One header per line, e.g.\nCookie: session=<your logged-in session>\nAuthorization: Bearer <token>'}
+        value={authHeaders}
+        onChange={(e) => setAuthHeaders(e.target.value)}
+        style={{ marginTop: 4, fontFamily: 'var(--mono)', fontSize: 12, width: '100%' }}
+      />
+
+      <div className="scope-label" style={{ marginTop: 16 }}>
         IDOR — victim identity
         {initial.hasIdorHeaders && <span className="pill pill-accent" style={{ marginLeft: 6 }}>saved</span>}
       </div>
@@ -102,6 +125,7 @@ export function ScanContextForm({ programId, initial }: { programId: string; ini
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
         <button className="btn btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save Context'}</button>
+        {initial.hasScanAuth && <button className="btn btn-sm btn-ghost" disabled={busy} onClick={clearAuth}>Clear session</button>}
         {initial.hasIdorHeaders && <button className="btn btn-sm btn-ghost" disabled={busy} onClick={clearIdor}>Clear IDOR identity</button>}
         {msg && <span style={{ color: 'var(--accent)', fontSize: 13 }}>{msg}</span>}
         {err && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{err}</span>}

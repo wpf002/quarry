@@ -200,7 +200,11 @@ app.post('/programs/:id/authorize', async (req, reply) => {
 async function loadScanContext(programId: string) {
   const c = await prisma.scanContext.findUnique({ where: { programId } });
   if (!c) return undefined;
-  const ctx: { idor?: Record<string, unknown>; ssrf?: Record<string, unknown> } = {};
+  const ctx: { idor?: Record<string, unknown>; ssrf?: Record<string, unknown>; auth?: Record<string, unknown> } = {};
+  const scanAuth = (c.scanAuthHeaders ?? null) as Record<string, string> | null;
+  if (scanAuth && Object.keys(scanAuth).length > 0) {
+    ctx.auth = { headers: scanAuth };
+  }
   const headers = (c.idorVictimHeaders ?? null) as Record<string, string> | null;
   if (headers && Object.keys(headers).length > 0) {
     ctx.idor = {
@@ -244,6 +248,7 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
   const { id } = req.params as { id: string };
   const b = (req.body ?? {}) as {
     by?: string;
+    scanAuthHeaders?: Record<string, string> | null;
     idorVictimHeaders?: Record<string, string> | null;
     idorVictimId?: string | null;
     idorIdParam?: string | null;
@@ -258,16 +263,19 @@ app.post('/programs/:id/scan-context', async (req, reply) => {
     ssrfCanaryHost: b.ssrfCanaryHost ?? null,
     ssrfWait: typeof b.ssrfWait === 'number' ? b.ssrfWait : null,
     updatedBy: b.by,
+    // Secret headers: only overwrite when the client actually sends them.
     ...(b.idorVictimHeaders !== undefined ? { idorVictimHeaders: b.idorVictimHeaders ?? undefined } : {}),
+    ...(b.scanAuthHeaders !== undefined ? { scanAuthHeaders: b.scanAuthHeaders ?? undefined } : {}),
   };
   const saved = await prisma.scanContext.upsert({
     where: { programId: id },
     create: { programId: id, ...data } as any,
     update: data as any,
   });
-  await audit({ actor: `human:${b.by}`, action: 'scan-context.save', programId: id, detail: { idor: !!saved.idorVictimHeaders, ssrf: !!saved.ssrfCanaryHost } });
+  await audit({ actor: `human:${b.by}`, action: 'scan-context.save', programId: id, detail: { auth: !!saved.scanAuthHeaders, idor: !!saved.idorVictimHeaders, ssrf: !!saved.ssrfCanaryHost } });
   return {
     ok: true,
+    hasScanAuth: !!saved.scanAuthHeaders,
     hasIdorHeaders: !!saved.idorVictimHeaders,
     idorVictimId: saved.idorVictimId,
     idorIdParam: saved.idorIdParam,

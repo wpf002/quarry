@@ -82,6 +82,7 @@ export default async function ProgramDetail({
         <ScanContextForm
           programId={program.id}
           initial={{
+            hasScanAuth: !!(program.scanContext?.scanAuthHeaders && Object.keys(program.scanContext.scanAuthHeaders as object).length > 0),
             hasIdorHeaders: !!(program.scanContext?.idorVictimHeaders && Object.keys(program.scanContext.idorVictimHeaders as object).length > 0),
             idorVictimId: program.scanContext?.idorVictimId ?? null,
             idorIdParam: program.scanContext?.idorIdParam ?? null,

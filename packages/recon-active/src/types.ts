@@ -13,6 +13,8 @@ export interface ScanProfile {
 export interface InfiltrContext {
   idor?: { victim_headers?: Record<string, string>; victim_id?: string; id_param?: string };
   ssrf?: { canary_host?: string; wait?: number };
+  /** Scan-wide session applied to every module (authenticated testing). */
+  auth?: { headers?: Record<string, string> };
 }
 
 export interface ScanTargetInput {
