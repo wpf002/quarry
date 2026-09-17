@@ -152,24 +152,20 @@ export function GateActions({
       {/* authorize */}
       <div className="card">
         <h3 style={{ fontSize: 15, marginBottom: 12 }}>Authorize Scanning</h3>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            className="btn btn-primary"
-            disabled={!ready || busy != null}
-            title="One approved scan for this program. Expires."
-            onClick={() => run('approve', () => apiPost(`/programs/${programId}/approve-scan`, { approvedBy: who }), 'Scan approved.')}
-          >
-            {busy === 'approve' ? 'Approving…' : ready ? 'Approve Once' : 'Clear Flags First'}
-          </button>
-          <button
-            className="btn"
-            disabled={!ready || !allVerified || busy != null}
-            title="Runs Tier 1–2 on its own within limits until it expires. Needs every entry verified."
-            onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Standing authorization signed.')}
-          >
-            {busy === 'preauth' ? 'Signing…' : allVerified && ready ? 'Sign Standing' : 'Verify Entries First'}
-          </button>
-        </div>
+        <button
+          className="btn btn-primary"
+          disabled={!ready || !allVerified || busy != null}
+          title="Runs Tier 1–2 on its own within limits until it expires."
+          onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Authorized. Quarry can now run this program.')}
+        >
+          {busy === 'preauth'
+            ? 'Authorizing…'
+            : !ready
+              ? 'Clear Flags First'
+              : !allVerified
+                ? 'Verify Entries First'
+                : 'Authorize'}
+        </button>
         {ok && <div style={{ color: 'var(--accent)', marginTop: 10, fontSize: 13 }}>{ok}</div>}
         {err && <div style={{ color: 'var(--danger)', marginTop: 10, fontSize: 13 }}>{err}</div>}
       </div>

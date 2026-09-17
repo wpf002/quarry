@@ -63,7 +63,7 @@ export default async function ProgramDetail({
         </div>
       </div>
 
-      <div className="grid" style={{ gap: 16, maxWidth: 760 }}>
+      <div className="grid" style={{ gap: 16 }}>
         <GateActions
           programId={program.id}
           flags={program.ambiguityFlags}
