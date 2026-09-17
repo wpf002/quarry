@@ -1,18 +1,26 @@
 import { prisma, safe } from '../../lib/db';
 import Link from 'next/link';
-import { ScoreBar, PlatformPill, EmptyState, ConfidenceBand } from '../../components/ui';
+import { ScoreBar, PlatformPill, EmptyState, ConfidenceBand, Pager } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Programs() {
-  const programs = await safe(
-    () =>
-      prisma.program.findMany({
-        orderBy: [{ score: 'desc' }, { updatedAt: 'desc' }],
-        take: 100,
-      }),
-    [] as any[],
-  );
+const PAGE_SIZE = 50;
+
+export default async function Programs({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const page = Math.max(1, Number((await searchParams)?.page ?? 1) || 1);
+  const [total, programs] = await Promise.all([
+    safe(() => prisma.program.count(), 0),
+    safe(
+      () =>
+        prisma.program.findMany({
+          orderBy: [{ score: 'desc' }, { updatedAt: 'desc' }],
+          skip: (page - 1) * PAGE_SIZE,
+          take: PAGE_SIZE,
+        }),
+      [] as any[],
+    ),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -32,6 +40,7 @@ export default async function Programs() {
           <code>pnpm --filter @quarry/db seed</code>.
         </EmptyState>
       ) : (
+        <>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -87,6 +96,8 @@ export default async function Programs() {
             </tbody>
           </table>
         </div>
+        <Pager page={page} totalPages={totalPages} basePath="/programs" />
+        </>
       )}
     </>
   );

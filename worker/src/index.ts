@@ -1,6 +1,6 @@
 // Autonomous loop. Everything scheduled here is unattended and passive-safe.
 // Active scanning is NOT scheduled here; it only runs from an approved gate.
-import { discoverPrograms, persistDiscovered } from '@quarry/discovery';
+import { discoverPrograms, persistDiscovered, enrichAndPersist } from '@quarry/discovery';
 import { runAutoScans, runAutoSubmit, selectTopPrograms, runAutopilot, liveCertFetcher } from '@quarry/autonomy';
 import { enumerateAssets, persistAssets } from '@quarry/recon-passive';
 import { reportReadyFindings } from '@quarry/analyzer';
@@ -50,6 +50,13 @@ async function tick() {
         `[discovery] +${res.created} ~${res.updated} =${res.unchanged}`,
       );
     }
+    // Enrich a batch of list-level programs with their real scope each tick.
+    // Read-only platform API calls; rate limited inside.
+    const enriched = await enrichAndPersist({ limit: 50, delayMs: 200 });
+    if (enriched.enriched > 0) {
+      console.log(`[enrich] +${enriched.enriched} (skipped ${enriched.skipped}, errors ${enriched.errors})`);
+    }
+
     // L4 auto-onboarding — OFF unless enabled. Passive + draft only; stops at
     // the allowlist for human sign-off.
     if ((process.env.QUARRY_AUTO_ONBOARD ?? '').toLowerCase() === 'on') {

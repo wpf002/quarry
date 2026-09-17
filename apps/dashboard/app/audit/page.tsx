@@ -1,7 +1,9 @@
 import { prisma, safe } from '../../lib/db';
-import { EmptyState } from '../../components/ui';
+import { EmptyState, Pager } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
+
+const PAGE_SIZE = 50;
 
 const ACTION_PILL = (action: string) => {
   if (action.includes('refuse') || action.includes('halted') || action.endsWith('.on')) return 'pill-danger';
@@ -10,11 +12,16 @@ const ACTION_PILL = (action: string) => {
   return 'pill-muted';
 };
 
-export default async function AuditPage() {
-  const rows = await safe(
-    () => prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }),
-    [] as any[],
-  );
+export default async function AuditPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const page = Math.max(1, Number((await searchParams)?.page ?? 1) || 1);
+  const [total, rows] = await Promise.all([
+    safe(() => prisma.auditLog.count(), 0),
+    safe(
+      () => prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
+      [] as any[],
+    ),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -33,6 +40,7 @@ export default async function AuditPage() {
           Scope decisions and gate checks appear here as the system runs.
         </EmptyState>
       ) : (
+        <>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -61,6 +69,8 @@ export default async function AuditPage() {
             </tbody>
           </table>
         </div>
+        <Pager page={page} totalPages={totalPages} basePath="/audit" />
+        </>
       )}
     </>
   );

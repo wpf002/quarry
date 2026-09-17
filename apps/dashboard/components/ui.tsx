@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 export function Stat({
@@ -110,4 +111,21 @@ export function ConfidenceBand({ value }: { value: number | null | undefined }) 
   const band = v >= 0.8 ? 'HIGH' : v >= 0.5 ? 'MEDIUM' : 'LOW';
   const cls = band === 'HIGH' ? 'pill-accent' : band === 'MEDIUM' ? 'pill-warn' : 'pill-muted';
   return <span className={`pill ${cls}`}>{band}</span>;
+}
+
+export function Pager({ page, totalPages, basePath }: { page: number; totalPages: number; basePath: string }) {
+  if (totalPages <= 1) return null;
+  const link = (p: number, label: string, disabled: boolean) =>
+    disabled ? (
+      <span className="btn btn-sm" style={{ opacity: 0.4, pointerEvents: 'none' }}>{label}</span>
+    ) : (
+      <Link className="btn btn-sm" href={`${basePath}?page=${p}`}>{label}</Link>
+    );
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
+      {link(page - 1, '← Prev', page <= 1)}
+      <span className="page-sub">Page {page} of {totalPages}</span>
+      {link(page + 1, 'Next →', page >= totalPages)}
+    </div>
+  );
 }
