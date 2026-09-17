@@ -84,7 +84,7 @@ const defaultJson: Json = async (url, headers) => {
 // limited to be polite to the platform APIs.
 export async function enrichAndPersist(
   opts: { limit?: number; delayMs?: number; json?: Json } = {},
-): Promise<{ enriched: number; skipped: number; errors: number }> {
+): Promise<{ enriched: number; skipped: number; errors: number; errorSample: string[] }> {
   const limit = opts.limit ?? 1000;
   const delayMs = opts.delayMs ?? 200;
   const json = opts.json ?? defaultJson;
@@ -115,6 +115,7 @@ export async function enrichAndPersist(
   });
 
   let enriched = 0, skipped = 0, errors = 0;
+  const errorCounts = new Map<string, number>();
   for (const p of programs) {
     try {
       let scope: EnrichedScope | null = null;
@@ -158,10 +159,18 @@ export async function enrichAndPersist(
         detail: { inScope: scope.inScope.length, outOfScope: scope.outOfScope.length, wildcards: scope.wildcardFlags.length },
       });
       enriched++;
-    } catch {
+    } catch (e) {
       errors++;
+      const msg = (e as Error).message || 'unknown';
+      errorCounts.set(msg, (errorCounts.get(msg) ?? 0) + 1);
+      // Rate limited: back off hard so we stop burning the quota.
+      if (msg.includes('429')) await sleep(5000);
     }
     await sleep(delayMs);
   }
-  return { enriched, skipped, errors };
+  const errorSample = [...errorCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([m, n]) => `${m} x${n}`);
+  return { enriched, skipped, errors, errorSample };
 }

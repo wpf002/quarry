@@ -54,6 +54,9 @@ export async function discoverPrograms(
   return out;
 }
 
+/** parseConfidence at or above this means scope came from enrichment, not the heuristic. */
+export const ENRICHED_CONFIDENCE = 0.9;
+
 /** True when a connector actually returned policy text worth re-parsing. */
 export function carriesPolicy(policyRaw: string | null | undefined): boolean {
   return (policyRaw ?? '').trim().length > 0;
@@ -76,9 +79,23 @@ export async function persistDiscovered(
       },
     });
 
-    // A list-level poll carries no policy text. It must NEVER overwrite scope
-    // that enrichment already fetched, or discovery and enrichment fight each
-    // other every tick. Refresh only the cheap list fields.
+    // Enrichment is authoritative. Once a program has real, fetched scope, a
+    // discovery poll must never downgrade it back to the heuristic parse --
+    // otherwise the two fight each other on every tick.
+    if (existing && existing.parseConfidence >= ENRICHED_CONFIDENCE) {
+      await prisma.program.update({
+        where: { id: existing.id },
+        data: {
+          name: d.raw.name,
+          maxBountyUsd: d.raw.maxBountyUsd ?? existing.maxBountyUsd,
+        },
+      });
+      unchanged++;
+      continue;
+    }
+
+    // A list-level poll carries no policy text, so there is nothing new to
+    // parse. Refresh only the cheap list fields.
     if (existing && !carriesPolicy(d.raw.policyRaw)) {
       await prisma.program.update({
         where: { id: existing.id },
