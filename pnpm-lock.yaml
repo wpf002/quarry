@@ -60,6 +60,9 @@ importers:
       '@quarry/analyzer':
         specifier: workspace:*
         version: link:../../packages/analyzer
+      '@quarry/autonomy':
+        specifier: workspace:*
+        version: link:../../packages/autonomy
       '@quarry/db':
         specifier: workspace:*
         version: link:../../packages/db

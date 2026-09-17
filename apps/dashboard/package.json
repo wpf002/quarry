@@ -14,7 +14,8 @@
     "react-dom": "^18.3.0",
     "@quarry/db": "workspace:*",
     "@quarry/feedback": "workspace:*",
-    "@quarry/analyzer": "workspace:*"
+    "@quarry/analyzer": "workspace:*",
+    "@quarry/autonomy": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
