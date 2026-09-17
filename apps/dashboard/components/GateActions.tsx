@@ -30,7 +30,6 @@ export function GateActions({
   const [scanTier, setScanTier] = useState<1 | 2 | 3>(1);
 
   const active = allowlist.filter((e) => e.active);
-  const ready = active.length > 0;
   const allVerified = active.length > 0 && active.every((e) => e.ownershipVerified);
 
   const run = async (key: string, fn: () => Promise<any>, okMsg?: string) => {
@@ -176,24 +175,22 @@ export function GateActions({
         )}
         <AddPattern programId={programId} who={who} onDone={() => router.refresh()} />
 
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            className="btn btn-primary"
-            disabled={!ready || !allVerified || busy != null}
-            title="Authorize Quarry to run Tier 1–2 scans on the verified hosts, within limits, until it expires."
-            onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Authorized. Quarry can now run this program.')}
-          >
-            {busy === 'preauth'
-              ? 'Authorizing…'
-              : active.length === 0
-                ? 'Add a Host First'
-                : !allVerified
-                  ? 'Verify Entries First'
-                  : 'Authorize Scanning'}
-          </button>
-          {ok && <span style={{ color: 'var(--accent)', fontSize: 13 }}>{ok}</span>}
-          {err && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{err}</span>}
-        </div>
+        {(allVerified || ok || err) && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {allVerified && (
+              <button
+                className="btn btn-primary"
+                disabled={busy != null}
+                title="Authorize Quarry to run Tier 1–2 scans on the verified hosts, within limits, until it expires."
+                onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Authorized. Quarry can now run this program.')}
+              >
+                {busy === 'preauth' ? 'Authorizing…' : 'Authorize Scanning'}
+              </button>
+            )}
+            {ok && <span style={{ color: 'var(--accent)', fontSize: 13 }}>{ok}</span>}
+            {err && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{err}</span>}
+          </div>
+        )}
       </div>
     </div>
   );
