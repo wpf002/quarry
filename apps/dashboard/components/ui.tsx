@@ -19,14 +19,21 @@ export function Stat({
   );
 }
 
-export function ScoreBar({ value }: { value: number | null | undefined }) {
+export function priorityTier(value: number | null | undefined): 'High' | 'Medium' | 'Low' {
+  const v = value ?? 0;
+  return v >= 0.7 ? 'High' : v >= 0.45 ? 'Medium' : 'Low';
+}
+
+export function PriorityBar({ value }: { value: number | null | undefined }) {
   const v = Math.max(0, Math.min(1, value ?? 0));
+  const tier = priorityTier(value);
+  const color = tier === 'High' ? 'var(--accent)' : tier === 'Medium' ? 'var(--warn)' : 'var(--faint)';
   return (
     <div className="score">
       <div className="score-track">
-        <div className="score-fill" style={{ width: `${v * 100}%` }} />
+        <div className="score-fill" style={{ width: `${v * 100}%`, background: color }} />
       </div>
-      <span className="score-num">{value == null ? '—' : `${Math.round(v * 100)}%`}</span>
+      <span style={{ fontSize: 12, color, width: 52, textAlign: 'right' }}>{tier}</span>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma, safe } from '../../../lib/db';
-import { PlatformPill, ScoreBar } from '../../../components/ui';
+import { PlatformPill, PriorityBar } from '../../../components/ui';
 import { GateActions } from '../../../components/GateActions';
 import { AutoSubmitPolicy } from '../../../components/AutoSubmitPolicy';
 
@@ -59,7 +59,7 @@ export default async function ProgramDetail({
           </div>
         </div>
         <div style={{ minWidth: 180 }}>
-          <ScoreBar value={program.score} />
+          <PriorityBar value={program.score} />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma, safe } from '../lib/db';
-import { Stat } from '../components/ui';
+import { Stat, priorityTier } from '../components/ui';
 import { selectTopPrograms, proposeAllowlist, buildDigest } from '@quarry/autonomy';
 import { computeOutcomeStats } from '@quarry/feedback';
 
@@ -96,7 +96,7 @@ export default async function Overview() {
             top.map((p) => (
               <Link key={p.id} href={`/programs/${p.id}`} className="callout" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ color: 'var(--text)' }}>{p.handle}</span>
-                <span className="mono zap">{Math.round((p.score ?? 0) * 100)}%</span>
+                <span className="zap" style={{ fontSize: 12 }}>{priorityTier(p.score)}</span>
               </Link>
             ))
           )}

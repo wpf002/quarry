@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma, safe } from '../../lib/db';
-import { ScoreBar, PlatformPill, EmptyState, Pager, SortHeader, StatusPill, PaysPill, money } from '../../components/ui';
+import { PriorityBar, PlatformPill, EmptyState, Pager, SortHeader, StatusPill, PaysPill, money } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,8 +45,8 @@ export default async function Programs({
         <div>
           <h1 className="page-title">Programs</h1>
           <div className="page-sub">
-            {total.toLocaleString()} programs. Score is how likely Quarry lands a
-            paid bug: payout, testable surface, and how picked-over the program is.
+            {total.toLocaleString()} programs. Priority ranks targets by payout and
+            testable surface. It is not a prediction that Quarry will find a bug.
           </div>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default async function Programs({
                 <SortHeader label="Status" field="platformStatus" sort={sort} dir={dir} basePath="/programs" />
                 <SortHeader label="Pays" field="offersBounty" sort={sort} dir={dir} basePath="/programs" />
                 <SortHeader label="Max Bounty" field="maxBountyUsd" sort={sort} dir={dir} basePath="/programs" />
-                <SortHeader label="Score" field="score" sort={sort} dir={dir} basePath="/programs" width={170} />
+                <SortHeader label="Priority" field="score" sort={sort} dir={dir} basePath="/programs" width={170} />
               </tr>
             </thead>
             <tbody>
@@ -84,7 +84,7 @@ export default async function Programs({
                   <td className="mono">
                     {money(p.maxBountyUsd, p.bountyCurrency, p.platform === 'HACKERONE')}
                   </td>
-                  <td><ScoreBar value={p.score} /></td>
+                  <td><PriorityBar value={p.score} /></td>
                 </tr>
               ))}
             </tbody>
