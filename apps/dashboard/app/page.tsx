@@ -87,7 +87,7 @@ export default async function Overview() {
         <div><strong>{digest.headline}</strong></div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'stretch' }}>
         <div className="card">
           <h3 style={{ fontSize: 15, marginBottom: 12 }}>Top Programs</h3>
           {top.length === 0 ? (
