@@ -1,4 +1,5 @@
 import { prisma, safe } from '../../lib/db';
+import Link from 'next/link';
 import { ScoreBar, PlatformPill, EmptyState } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -48,10 +49,12 @@ export default async function Programs() {
               {programs.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{p.name}</div>
-                    <div className="mono" style={{ color: 'var(--faint)' }}>
-                      {p.handle}
-                    </div>
+                    <Link href={`/programs/${p.id}`}>
+                      <div style={{ fontWeight: 600 }}>{p.name}</div>
+                      <div className="mono" style={{ color: 'var(--faint)' }}>
+                        {p.handle}
+                      </div>
+                    </Link>
                   </td>
                   <td>
                     <PlatformPill platform={p.platform} />
