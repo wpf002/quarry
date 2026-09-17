@@ -73,10 +73,10 @@ export default async function Overview() {
       </div>
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
-        <Stat label="Programs" value={total} hint={`${active} active`} />
-        <Stat label="Findings" value={findings} hint="passive and analyzed" />
-        <Stat label="Awaiting Review" value={queued} hint="held, never auto-sent" />
-        <Stat label="Revenue" value={`$${revenueUsd.toLocaleString()}`} hint={`${Math.round(stats.validRate * 100)}% valid`} />
+        <Stat label="Programs" value={total} />
+        <Stat label="Findings" value={findings} />
+        <Stat label="Awaiting Review" value={queued} />
+        <Stat label="Revenue" value={`$${revenueUsd.toLocaleString()}`} />
       </div>
 
       <div
