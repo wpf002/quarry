@@ -27,7 +27,7 @@ const fmt = (d: Date) => new Date(d).toISOString().slice(0, 16).replace('T', ' '
 // WAF/library detection, scan notes) is treated as informational and hidden
 // unless "Show all". CVEs match by `cve*` prefix separately.
 const PAYABLE_CLASSES = [
-  'secret-exposure', 'git-exposure', 'env-exposure', 'exposed-secret', 'exposed-api-key', 'exposed-key',
+  'secret-exposure', 'sensitive-file-exposure', 'git-exposure', 'env-exposure', 'exposed-secret', 'exposed-api-key', 'exposed-key',
   'subdomain-takeover',
   'public-bucket', 'open-bucket', 's3-exposure',
   'idor', 'bola', 'broken-access-control', 'access-control',

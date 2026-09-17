@@ -103,7 +103,8 @@ async function persistActiveResult(
         title: f.title,
         vulnClass: f.vulnClass,
         severity: f.severity,
-        confidence: 0.5,
+        // Trust Infiltr's confidence; it drives the report-ready gate (>= 0.8).
+        confidence: typeof f.confidence === 'number' ? f.confidence : 0.5,
         dupRisk: 0.5,
         evidence: f.evidence as object,
         target: result.target,
