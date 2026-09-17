@@ -60,12 +60,10 @@ export function GateActions({
         />
       </div>
 
-      {/* ambiguity */}
-      <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Ambiguity Flags</h3>
-        {flags.length === 0 ? (
-          <span className="pill pill-accent">all clear</span>
-        ) : (
+      {/* ambiguity — only shown when there is something to clear */}
+      {flags.length > 0 && (
+        <div className="card">
+          <h3 style={{ fontSize: 15, marginBottom: 12 }}>Ambiguity Flags</h3>
           <div className="grid" style={{ gap: 8 }}>
             {flags.map((f) => (
               <div key={f} className="callout" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -80,10 +78,10 @@ export function GateActions({
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* allowlist */}
+      {/* allowlist + authorize (one card) */}
       <div className="card">
         <h3 style={{ fontSize: 15, marginBottom: 12 }}>Allowlist</h3>
         {active.length > 0 && (
@@ -172,27 +170,27 @@ export function GateActions({
           </div>
         )}
         <AddPattern programId={programId} who={who} onDone={() => router.refresh()} />
-      </div>
 
-      {/* authorize */}
-      <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Authorize Scanning</h3>
-        <button
-          className="btn btn-primary"
-          disabled={!ready || !allVerified || busy != null}
-          title="Runs Tier 1–2 on its own within limits until it expires."
-          onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Authorized. Quarry can now run this program.')}
-        >
-          {busy === 'preauth'
-            ? 'Authorizing…'
-            : !ready
-              ? 'Clear Flags First'
-              : !allVerified
-                ? 'Verify Entries First'
-                : 'Authorize'}
-        </button>
-        {ok && <div style={{ color: 'var(--accent)', marginTop: 10, fontSize: 13 }}>{ok}</div>}
-        {err && <div style={{ color: 'var(--danger)', marginTop: 10, fontSize: 13 }}>{err}</div>}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary"
+            disabled={!ready || !allVerified || busy != null}
+            title="Authorize Quarry to run Tier 1–2 scans on the verified hosts, within limits, until it expires."
+            onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Authorized. Quarry can now run this program.')}
+          >
+            {busy === 'preauth'
+              ? 'Authorizing…'
+              : active.length === 0
+                ? 'Add a Host First'
+                : !ready
+                  ? 'Clear Flags First'
+                  : !allVerified
+                    ? 'Verify Entries First'
+                    : 'Authorize Scanning'}
+          </button>
+          {ok && <span style={{ color: 'var(--accent)', fontSize: 13 }}>{ok}</span>}
+          {err && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{err}</span>}
+        </div>
       </div>
     </div>
   );

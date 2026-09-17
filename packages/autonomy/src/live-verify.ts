@@ -86,7 +86,7 @@ export interface LiveVerifyResult {
 export async function liveVerify(pattern: string): Promise<LiveVerifyResult> {
   const host = patternToHost(pattern);
   if (!host) {
-    return { verified: false, method: 'NONE', reason: 'pattern is not a verifiable host (CIDR?)', evidence: { host: null } };
+    return { verified: false, method: 'NONE', reason: 'Pattern is not a verifiable host (CIDR?)', evidence: { host: null } };
   }
 
   const ips = await dns.resolve4(host).catch(() => [] as string[]);
@@ -97,23 +97,23 @@ export async function liveVerify(pattern: string): Promise<LiveVerifyResult> {
     cert = await fetchCert(host);
   } catch (e) {
     if (ips.length > 0) {
-      return { verified: false, method: 'DNS_ONLY', reason: `resolves but TLS cert unreadable (${(e as Error).message})`, evidence: { host, ips, cname } };
+      return { verified: false, method: 'DNS_ONLY', reason: `Resolves but TLS cert unreadable (${(e as Error).message})`, evidence: { host, ips, cname } };
     }
-    return { verified: false, method: 'NONE', reason: `no DNS and no cert (${(e as Error).message})`, evidence: { host } };
+    return { verified: false, method: 'NONE', reason: `No DNS record and no cert (${(e as Error).message})`, evidence: { host } };
   }
 
   if (sanCovers(host, cert.sans)) {
     return {
       verified: true,
       method: 'CERT_SAN',
-      reason: `live cert SAN covers ${host}`,
+      reason: `Live cert SAN covers ${host}`,
       evidence: { host, sans: cert.sans, issuer: cert.issuer, validTo: cert.validTo, ips, cname },
     };
   }
   return {
     verified: false,
     method: 'NONE',
-    reason: `cert SANs do not cover ${host}`,
+    reason: `Cert SANs do not cover ${host} (host serves no certificate for this name)`,
     evidence: { host, sans: cert.sans, issuer: cert.issuer, ips, cname },
   };
 }
