@@ -7,6 +7,8 @@ import {
   evaluate as evaluateMatch,
 } from '@quarry/core';
 import { recordOutcome, recomputeProgramScore } from '@quarry/feedback';
+import { runActiveScan, KillSwitchEngaged, InfiltrError } from '@quarry/recon-active';
+import { ScopeRefusal } from '@quarry/core';
 import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signCampaign, pauseCampaign, CampaignRefusal, liveVerify } from '@quarry/autonomy';
 
 const app = Fastify({ logger: true });
@@ -160,6 +162,25 @@ app.post('/campaigns/:id/pause', async (req, reply) => {
   if (!by) return reply.code(400).send({ error: 'by required' });
   await pauseCampaign(id, reason ?? 'manual pause', by);
   return { ok: true };
+});
+
+// --- Manual single-target scan (gated, Tier 1) ---------------------------
+// Runs ONE authorized target through the same gate the autopilot uses. It
+// refuses unless the target is on a live allowlist under a valid approval.
+app.post('/programs/:id/scan-target', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { target } = (req.body ?? {}) as { target?: string };
+  if (!target) return reply.code(400).send({ error: 'target required' });
+  try {
+    const result = await runActiveScan({ programId: id, target, tier: 1, profile: { tiers: [1] } });
+    return { ok: true, assets: result.assets.length, findings: result.findings.length };
+  } catch (e) {
+    if (e instanceof KillSwitchEngaged) return reply.code(409).send({ error: 'kill switch engaged' });
+    if (e instanceof ScopeRefusal) return reply.code(403).send({ error: e.message });
+    if (e instanceof InfiltrError) return reply.code(502).send({ error: `infiltr ${e.status || 'timeout'}` });
+    req.log.error(e);
+    return reply.code(500).send({ error: 'scan failed' });
+  }
 });
 
 // --- L3: auto-submit policy -----------------------------------------------

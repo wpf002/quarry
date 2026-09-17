@@ -41,6 +41,9 @@ importers:
       '@quarry/feedback':
         specifier: workspace:*
         version: link:../../packages/feedback
+      '@quarry/recon-active':
+        specifier: workspace:*
+        version: link:../../packages/recon-active
       '@quarry/reporter':
         specifier: workspace:*
         version: link:../../packages/reporter

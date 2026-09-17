@@ -106,10 +106,35 @@ export function GateActions({
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="btn btn-sm btn-ghost" disabled={busy != null}
-                        onClick={() => run('del' + e.id, () => apiPost(`/programs/${programId}/allowlist/${e.id}/deactivate`, { by: who }))}>
-                        Remove
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: 6 }}>
+                        {e.ownershipVerified && (
+                          <button
+                            className="btn btn-sm"
+                            disabled={busy != null}
+                            title="Run one Tier-1 scan on this host via Infiltr. Needs an active authorization."
+                            onClick={async () => {
+                              setBusy('scan' + e.id); setErr(null); setOk(null);
+                              try {
+                                const r = await apiPost<{ assets: number; findings: number }>(
+                                  `/programs/${programId}/scan-target`, { target: e.pattern },
+                                );
+                                setOk(`Scanned ${e.pattern}: ${r.findings} finding(s), ${r.assets} asset(s).`);
+                                router.refresh();
+                              } catch (err) {
+                                setErr((err as Error).message);
+                              } finally {
+                                setBusy(null);
+                              }
+                            }}
+                          >
+                            {busy === 'scan' + e.id ? 'Scanning…' : 'Scan'}
+                          </button>
+                        )}
+                        <button className="btn btn-sm btn-ghost" disabled={busy != null}
+                          onClick={() => run('del' + e.id, () => apiPost(`/programs/${programId}/allowlist/${e.id}/deactivate`, { by: who }))}>
+                          Remove
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
