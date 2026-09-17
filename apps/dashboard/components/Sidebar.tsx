@@ -15,6 +15,7 @@ const NAV = [
   { href: '/allowlist', label: 'Allowlist' },
   { href: '/approvals', label: 'Scan approvals' },
   { href: '/autonomy', label: 'Autonomy (L2)' },
+  { href: '/autopilot', label: 'Autopilot (L5)' },
   { section: 'Trace' },
   { href: '/audit', label: 'Audit log' },
 ];

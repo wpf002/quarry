@@ -20,8 +20,14 @@ ownership-verified allowlists, budget/rate limits, and auto-revoking circuit
 breakers), L3 (opt-in auto-submit under a policy bar; high-impact/CRITICAL never
 auto-submit; reputation breaker), L4 (self-directed onboarding of top-scored
 programs + provenance-based allowlist proposals + daily digest, stopping at the
-human sign-off). Note: L3 relaxes the original "nothing auto-submits"
-non-negotiable, by explicit choice, behind per-program opt-in.
+human sign-off), L5 (signed policy envelope: composes L2/L3 under one expiry
+with master auto-pause triggers + an autopilot dashboard). Note: L3 relaxes the
+original "nothing auto-submits" non-negotiable, by explicit choice, behind
+per-program opt-in.
+
+**Full L0-L5 shipped.** The permanent boundaries hold: first per-program
+authorization is human; Tier-3 actions never auto-run; scope trust requires
+ownership proof; auto-pause + kill switch stop everything.
 
 ---
 

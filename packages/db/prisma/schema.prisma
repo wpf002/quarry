@@ -221,6 +221,28 @@ model AutoSubmitPolicy {
   updatedAt          DateTime @updatedAt
 }
 
+// L5 policy envelope. A human signs it (weekly/monthly). Inside a live, unpaused
+// envelope the autopilot runs scan + auto-submit for its programs with no
+// further input. Expired, paused, or unsigned -> nothing runs. Enforced like the
+// gate: fail-closed and audited.
+model PolicyEnvelope {
+  id               String   @id @default(cuid())
+  signedBy         String
+  programIds       String[]
+  tiers            Int[]
+  maxTargetsPerDay Int      @default(25)
+  rateLimitPerMin  Int      @default(20)
+  dailyBudgetUsd   Int      @default(5)
+  autoSubmit       Boolean  @default(false)
+  minConfidence    Float    @default(0.85)
+  maxDupRisk       Float    @default(0.3)
+  dailyCap         Int      @default(3)
+  expiresAt        DateTime
+  paused           Boolean  @default(false)
+  pausedReason     String?
+  createdAt        DateTime @default(now())
+}
+
 // Append-only trail. Every scope verdict and every active action lands here.
 // Never updated, never deleted in normal operation.
 model AuditLog {

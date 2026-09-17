@@ -6,3 +6,4 @@ export * from './autosubmit.js';
 export * from './onboarding.js';
 export * from './digest.js';
 export * from './cost.js';
+export * from './envelope.js';

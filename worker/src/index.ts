@@ -1,7 +1,7 @@
 // Autonomous loop. Everything scheduled here is unattended and passive-safe.
 // Active scanning is NOT scheduled here; it only runs from an approved gate.
 import { discoverPrograms, persistDiscovered } from '@quarry/discovery';
-import { runAutoScans, runAutoSubmit, selectTopPrograms } from '@quarry/autonomy';
+import { runAutoScans, runAutoSubmit, selectTopPrograms, runAutopilot } from '@quarry/autonomy';
 import { enumerateAssets, persistAssets } from '@quarry/recon-passive';
 import { reportReadyFindings } from '@quarry/analyzer';
 import { draftAndQueue } from '@quarry/reporter';
@@ -75,6 +75,15 @@ async function tick() {
       const sent = await runAutoSubmit();
       for (const r of sent) {
         console.log(`[autosubmit] ${r.programId}: ${r.submitted} sent${r.paused ? ` (paused: ${r.paused})` : ''}`);
+      }
+    }
+
+    // L5 autopilot — OFF unless enabled. Runs scan + submit for programs inside
+    // a live, signed envelope; pause triggers halt the whole envelope.
+    if ((process.env.QUARRY_AUTOPILOT ?? '').toLowerCase() === 'on') {
+      const env = await runAutopilot();
+      for (const e of env) {
+        if (e.paused) console.log(`[autopilot] envelope ${e.envelopeId} paused: ${e.paused}`);
       }
     }
   } catch (e) {
