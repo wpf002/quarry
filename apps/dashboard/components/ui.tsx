@@ -120,20 +120,63 @@ export function ConfidenceBand({ value }: { value: number | null | undefined }) 
   return <span className={`pill ${cls}`}>{band}</span>;
 }
 
-export function Pager({ page, totalPages, basePath, extraQuery = '' }: { page: number; totalPages: number; basePath: string; extraQuery?: string }) {
+function pageWindow(current: number, total: number): (number | '…')[] {
+  const keep = new Set<number>([1, total, current - 1, current, current + 1]);
+  const pages = [...keep].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  let prev = 0;
+  for (const n of pages) {
+    if (n - prev > 1) out.push('…');
+    out.push(n);
+    prev = n;
+  }
+  return out;
+}
+
+export function Pager({
+  page,
+  totalPages,
+  basePath,
+  extraQuery = '',
+  total,
+  pageSize,
+}: {
+  page: number;
+  totalPages: number;
+  basePath: string;
+  extraQuery?: string;
+  total?: number;
+  pageSize?: number;
+}) {
   if (totalPages <= 1) return null;
-  const link = (p: number, label: string, disabled: boolean) =>
+  const href = (p: number) => `${basePath}?page=${p}${extraQuery}`;
+  const summary =
+    total != null && pageSize != null
+      ? `${((page - 1) * pageSize + 1).toLocaleString()}–${Math.min(page * pageSize, total).toLocaleString()} of ${total.toLocaleString()}`
+      : `Page ${page} of ${totalPages}`;
+  const arrow = (p: number, label: string, disabled: boolean) =>
     disabled ? (
-      <span className="btn btn-sm" style={{ opacity: 0.4, pointerEvents: 'none' }}>{label}</span>
+      <span className="btn btn-sm btn-ghost" style={{ opacity: 0.35, pointerEvents: 'none' }}>{label}</span>
     ) : (
-      <Link className="btn btn-sm" href={`${basePath}?page=${p}${extraQuery}`}>{label}</Link>
+      <Link className="btn btn-sm btn-ghost" href={href(p)} aria-label={label === '←' ? 'Previous page' : 'Next page'}>{label}</Link>
     );
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-      {link(page - 1, '← Prev', page <= 1)}
-      <span className="page-sub">Page {page} of {totalPages}</span>
-      {link(page + 1, 'Next →', page >= totalPages)}
-    </div>
+    <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
+      <span className="page-sub">{summary}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {arrow(page - 1, '←', page <= 1)}
+        {pageWindow(page, totalPages).map((p, i) =>
+          p === '…' ? (
+            <span key={`gap-${i}`} style={{ color: 'var(--faint)', padding: '0 4px' }}>…</span>
+          ) : p === page ? (
+            <span key={p} className="btn btn-sm btn-primary" style={{ pointerEvents: 'none', minWidth: 34, textAlign: 'center' }}>{p}</span>
+          ) : (
+            <Link key={p} className="btn btn-sm btn-ghost" href={href(p)} style={{ minWidth: 34, textAlign: 'center' }}>{p}</Link>
+          ),
+        )}
+        {arrow(page + 1, '→', page >= totalPages)}
+      </div>
+    </nav>
   );
 }
 

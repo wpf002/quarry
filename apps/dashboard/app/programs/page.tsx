@@ -93,7 +93,7 @@ export default async function Programs({
         <div style={{ color: 'var(--faint)', fontSize: 11.5, marginTop: 8 }}>
           HackerOne publishes no bounty amount; those figures are read from policy text and marked ~.
         </div>
-        <Pager page={page} totalPages={totalPages} basePath={`/programs`} extraQuery={qs} />
+        <Pager page={page} totalPages={totalPages} basePath={`/programs`} extraQuery={qs} total={total} pageSize={PAGE_SIZE} />
         </>
       )}
     </>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma, safe } from '../../lib/db';
-import { SeverityPill, EmptyState, ConfidenceBand } from '../../components/ui';
+import { SeverityPill, EmptyState, ConfidenceBand, Pager } from '../../components/ui';
 import { OutcomeControls } from '../../components/OutcomeControls';
 
 export const dynamic = 'force-dynamic';
@@ -22,25 +22,30 @@ const STATE_PILL: Record<string, string> = {
 const PAGE_SIZE = 50;
 const fmt = (d: Date) => new Date(d).toISOString().slice(0, 16).replace('T', ' ');
 
-// Low-value classes that bounty programs almost never pay for. Hidden by
-// default so the list shows only payable-class candidates.
-const NOISE_CLASSES = [
-  'missing-security-header',
-  'discovered-endpoint',
-  'tech-fingerprint',
-  'dns-record',
-  'banner',
-  'info',
-  'informational',
-  'robots',
-  'sitemap',
+// Vuln classes bounty programs actually pay for. This is an allowlist, not a
+// denylist — anything not on it (headers, endpoints, fingerprints, TLS info,
+// WAF/library detection, scan notes) is treated as informational and hidden
+// unless "Show all". CVEs match by `cve*` prefix separately.
+const PAYABLE_CLASSES = [
+  'secret-exposure', 'git-exposure', 'env-exposure', 'exposed-secret', 'exposed-api-key', 'exposed-key',
+  'subdomain-takeover',
+  'public-bucket', 'open-bucket', 's3-exposure',
+  'idor', 'bola', 'broken-access-control', 'access-control',
+  'auth-bypass', 'auth-weakness', 'broken-auth', 'account-takeover',
+  'ssrf', 'sqli', 'sql-injection', 'rce', 'command-injection',
+  'xss', 'stored-xss', 'reflected-xss', 'dom-xss',
+  'open-redirect', 'cors-misconfig', 'cors-misconfiguration', 'csrf',
+  'ssti', 'xxe', 'lfi', 'rfi', 'deserialization', 'path-traversal', 'file-upload',
+  'exposed-panel',
 ];
 
 export default async function Findings({ searchParams }: { searchParams: Promise<{ page?: string; all?: string }> }) {
   const sp = await searchParams;
   const page = Math.max(1, Number(sp?.page ?? '1') || 1);
   const showAll = sp?.all === '1';
-  const where = showAll ? {} : { NOT: { vulnClass: { in: NOISE_CLASSES } } };
+  const where = showAll
+    ? {}
+    : { OR: [{ vulnClass: { in: PAYABLE_CLASSES } }, { vulnClass: { startsWith: 'cve' } }] };
   const [total, allTotal, findings, subs] = await Promise.all([
     safe(() => prisma.finding.count({ where }), 0),
     safe(() => prisma.finding.count(), 0),
@@ -127,13 +132,7 @@ export default async function Findings({ searchParams }: { searchParams: Promise
               })}
             </tbody>
           </table>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
-            <span className="page-sub">{total.toLocaleString()} findings · page {page} of {totalPages}</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {page > 1 && <Link className="btn btn-sm" href={`/findings?page=${page - 1}`}>← Prev</Link>}
-              {page < totalPages && <Link className="btn btn-sm" href={`/findings?page=${page + 1}`}>Next →</Link>}
-            </div>
-          </div>
+          <Pager page={page} totalPages={totalPages} basePath="/findings" extraQuery={showAll ? '&all=1' : ''} total={total} pageSize={PAGE_SIZE} />
         </div>
       )}
 
