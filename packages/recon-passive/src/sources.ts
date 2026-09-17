@@ -14,7 +14,10 @@ export function parseCrtSh(json: unknown, root: string): PassiveAsset[] {
     const nameField = typeof r?.name_value === 'string' ? r.name_value : '';
     for (const raw of nameField.split(/\n+/)) {
       const h = raw.trim().toLowerCase().replace(/^\*\./, '');
-      if (h && h.endsWith(root) && /^[a-z0-9.-]+$/.test(h)) hosts.add(h);
+      // Dot boundary so testexample.com does NOT match root example.com.
+      if (h && (h === root || h.endsWith('.' + root)) && /^[a-z0-9.-]+$/.test(h)) {
+        hosts.add(h);
+      }
     }
   }
   return [...hosts].map((value) => ({

@@ -11,12 +11,14 @@ test('parseCrtSh extracts in-domain subdomains, strips wildcards', () => {
       { name_value: 'api.acme.com\n*.acme.com' },
       { name_value: 'www.acme.com' },
       { name_value: 'evil.com' },
+      { name_value: 'm.testacme.com' },
     ],
     'acme.com',
   );
   const values = assets.map((a) => a.value).sort();
   assert.deepEqual(values, ['acme.com', 'api.acme.com', 'www.acme.com']);
   assert.ok(!values.includes('evil.com'));
+  assert.ok(!values.includes('m.testacme.com')); // dot boundary: not a subdomain of acme.com
   assert.ok(assets.every((a) => a.source === 'CT_LOG'));
 });
 
