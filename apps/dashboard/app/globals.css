@@ -192,3 +192,8 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 
 .scope-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
   color: var(--faint); margin-bottom: 7px; font-weight: 600; }
+
+.scope-summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); list-style: none; }
+.scope-summary::-webkit-details-marker { display: none; }
+.scope-summary::before { content: '▸ '; color: var(--faint); }
+details[open] .scope-summary::before { content: '▾ '; }
