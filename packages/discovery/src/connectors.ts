@@ -46,11 +46,17 @@ export class HackerOneConnector implements PlatformConnector {
   async fetchPrograms(): Promise<RawProgram[] | null> {
     if (!this.user || !this.token) return null;
     const auth = Buffer.from(`${this.user}:${this.token}`).toString('base64');
-    const res = await this.http(`${this.base}/hackers/programs`, {
-      headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
-    });
-    if (!res.ok) throw new Error(`hackerone ${res.status}`);
-    return mapHackerOne(await res.json());
+    const headers = { Authorization: `Basic ${auth}`, Accept: 'application/json' };
+    const out: RawProgram[] = [];
+    let url: string | null = `${this.base}/hackers/programs?page[size]=100`;
+    for (let pages = 0; url && pages < 20; pages++) {
+      const res = await this.http(url, { headers });
+      if (!res.ok) throw new Error(`hackerone ${res.status}`);
+      const json = (await res.json()) as any;
+      out.push(...mapHackerOne(json));
+      url = json?.links?.next ?? null;
+    }
+    return out;
   }
 }
 
@@ -87,14 +93,14 @@ export class BugcrowdConnector implements PlatformConnector {
 
 // --- Intigriti -------------------------------------------------------------
 export function mapIntigriti(data: unknown): RawProgram[] {
-  const rows = asArray(data);
+  const rows = asArray((data as any)?.records ?? data);
   return rows.map((r: any) => ({
     platform: 'INTIGRITI' as Platform,
     handle: str(r?.handle ?? r?.id),
     name: str(r?.name ?? r?.companyName),
     policyRaw: str(r?.description ?? ''),
-    maxBountyUsd: num(r?.maxBounty),
-    url: r?.webLinks?.detail,
+    maxBountyUsd: num(r?.maxBounty?.value ?? r?.maxBounty),
+    url: r?.handle ? `https://app.intigriti.com/researcher/programs/${r.handle}` : undefined,
   }));
 }
 
@@ -107,7 +113,7 @@ export class IntigritiConnector implements PlatformConnector {
   ) {}
   async fetchPrograms(): Promise<RawProgram[] | null> {
     if (!this.token) return null;
-    const res = await this.http(`${this.base}/programs`, {
+    const res = await this.http(`${this.base}/programs?limit=500`, {
       headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/json' },
     });
     if (!res.ok) throw new Error(`intigriti ${res.status}`);
