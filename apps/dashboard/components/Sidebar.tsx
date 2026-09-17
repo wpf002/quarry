@@ -5,6 +5,7 @@ import Link from 'next/link';
 const NAV = [
   { section: 'Autonomous' },
   { href: '/', label: 'Overview' },
+  { href: '/inbox', label: 'Review inbox' },
   { href: '/programs', label: 'Programs' },
   { href: '/findings', label: 'Findings' },
   { href: '/queue', label: 'Report queue' },

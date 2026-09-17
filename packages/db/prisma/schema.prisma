@@ -59,6 +59,7 @@ enum SubmissionState {
   DUPLICATE
   OUT_OF_SCOPE
   INFORMATIVE
+  REJECTED
 }
 
 model Program {

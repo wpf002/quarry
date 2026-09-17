@@ -16,10 +16,12 @@ export function GateActions({
   programId,
   flags,
   allowlist,
+  proposals = [],
 }: {
   programId: string;
   flags: string[];
   allowlist: Entry[];
+  proposals?: string[];
 }) {
   const router = useRouter();
   const [who, setWho] = useState('will');
@@ -108,6 +110,35 @@ export function GateActions({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {proposals.filter((p) => !active.some((e) => e.pattern === p)).length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div className="page-sub" style={{ marginBottom: 6 }}>
+              Parser proposed — confirm each you know is in scope:
+            </div>
+            <div className="chip-row">
+              {proposals
+                .filter((p) => !active.some((e) => e.pattern === p))
+                .map((p) => (
+                  <button
+                    key={p}
+                    className="btn btn-sm"
+                    disabled={busy != null}
+                    onClick={() =>
+                      run('add' + p, () =>
+                        apiPost(`/programs/${programId}/allowlist`, {
+                          pattern: p,
+                          allowWildcard: false,
+                          addedBy: who,
+                        }),
+                      )
+                    }
+                  >
+                    + {p}
+                  </button>
+                ))}
+            </div>
           </div>
         )}
         <AddPattern programId={programId} who={who} onDone={() => router.refresh()} />

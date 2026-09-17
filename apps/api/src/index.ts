@@ -176,6 +176,57 @@ app.post('/killswitch', async (req, reply) => {
   return { engaged: on };
 });
 
+// --- L1: batch human ops (review inbox) -----------------------------------
+app.post('/programs/approve-batch', async (req, reply) => {
+  const { programIds, approvedBy } = (req.body ?? {}) as { programIds?: string[]; approvedBy?: string };
+  if (!Array.isArray(programIds) || !approvedBy) {
+    return reply.code(400).send({ error: 'programIds[] and approvedBy required' });
+  }
+  const results = [];
+  for (const id of programIds) {
+    try {
+      const res = await grantScanApproval(id, approvedBy);
+      results.push({ programId: id, ok: true, approvals: res.approvals });
+    } catch (e) {
+      results.push({ programId: id, ok: false, error: (e as Error).message });
+    }
+  }
+  return { results };
+});
+
+app.post('/submissions/submit-batch', async (req, reply) => {
+  const { submissionIds, by } = (req.body ?? {}) as { submissionIds?: string[]; by?: string };
+  if (!Array.isArray(submissionIds) || !by) {
+    return reply.code(400).send({ error: 'submissionIds[] and by required' });
+  }
+  const results = [];
+  for (const id of submissionIds) {
+    // Only a held report can be submitted. Never downgrade a decided one.
+    const sub = await prisma.submission.findUnique({ where: { id }, select: { state: true, report: { select: { finding: { select: { programId: true } } } } } });
+    if (!sub) { results.push({ id, ok: false, error: 'not found' }); continue; }
+    if (sub.state !== 'HELD_FOR_REVIEW') { results.push({ id, ok: false, error: `not held (${sub.state})` }); continue; }
+    await prisma.submission.update({ where: { id }, data: { state: 'SUBMITTED' } });
+    await audit({ actor: `human:${by}`, action: 'submission.submit', programId: sub.report?.finding?.programId ?? null, detail: { submissionId: id } });
+    results.push({ id, ok: true });
+  }
+  return { results };
+});
+
+app.post('/submissions/:id/reject', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { by } = (req.body ?? {}) as { by?: string };
+  if (!by) return reply.code(400).send({ error: 'by required' });
+  const sub = await prisma.submission.findUnique({ where: { id }, select: { report: { select: { findingId: true, finding: { select: { programId: true } } } } } });
+  if (!sub) return reply.code(404).send({ error: 'not found' });
+  await prisma.submission.update({ where: { id }, data: { state: 'REJECTED' } });
+  // pull the finding back below the quality gate so it will not re-queue
+  if (sub.report?.findingId) {
+    await prisma.finding.update({ where: { id: sub.report.findingId }, data: { humanConfirmed: false } });
+  }
+  await audit({ actor: `human:${by}`, action: 'submission.reject', programId: sub.report?.finding?.programId ?? null, detail: { submissionId: id } });
+  return { ok: true };
+});
+
 const port = Number(process.env.PORT ?? 3001);
 app.listen({ port, host: '0.0.0.0' }).catch((e) => {
   app.log.error(e);

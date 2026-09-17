@@ -118,6 +118,7 @@ export default async function ProgramDetail({
           programId={program.id}
           flags={program.ambiguityFlags}
           allowlist={program.allowlist as any}
+          proposals={(scope.inScope ?? []).filter((a) => !a.includes('*'))}
         />
       </div>
     </>

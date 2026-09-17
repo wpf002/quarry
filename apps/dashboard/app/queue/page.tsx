@@ -13,6 +13,7 @@ const STATE_PILL: Record<string, string> = {
   DUPLICATE: 'pill-muted',
   OUT_OF_SCOPE: 'pill-danger',
   INFORMATIVE: 'pill-muted',
+  REJECTED: 'pill-danger',
 };
 
 export default async function Queue() {
