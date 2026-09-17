@@ -26,6 +26,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@quarry/autonomy':
+        specifier: workspace:*
+        version: link:../../packages/autonomy
       '@quarry/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -110,6 +113,25 @@ importers:
       '@quarry/db':
         specifier: workspace:*
         version: link:../db
+    devDependencies:
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.13
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+
+  packages/autonomy:
+    dependencies:
+      '@quarry/core':
+        specifier: workspace:*
+        version: link:../core
+      '@quarry/db':
+        specifier: workspace:*
+        version: link:../db
+      '@quarry/recon-active':
+        specifier: workspace:*
+        version: link:../recon-active
     devDependencies:
       tsx:
         specifier: ^4.19.0
@@ -241,6 +263,9 @@ importers:
       '@quarry/analyzer':
         specifier: workspace:*
         version: link:../packages/analyzer
+      '@quarry/autonomy':
+        specifier: workspace:*
+        version: link:../packages/autonomy
       '@quarry/core':
         specifier: workspace:*
         version: link:../packages/core

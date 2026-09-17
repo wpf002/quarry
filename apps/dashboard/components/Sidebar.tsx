@@ -13,6 +13,7 @@ const NAV = [
   { section: 'Human gate' },
   { href: '/allowlist', label: 'Allowlist' },
   { href: '/approvals', label: 'Scan approvals' },
+  { href: '/autonomy', label: 'Autonomy (L2)' },
   { section: 'Trace' },
   { href: '/audit', label: 'Audit log' },
 ];

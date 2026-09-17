@@ -1,7 +1,11 @@
 {
   "name": "@quarry/worker",
   "version": "0.0.0",
-  "scripts": { "dev": "tsx watch src/index.ts", "build": "tsc", "typecheck": "tsc --noEmit" },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "bullmq": "^5.13.0",
     "@quarry/core": "workspace:*",
@@ -9,7 +13,11 @@
     "@quarry/discovery": "workspace:*",
     "@quarry/recon-passive": "workspace:*",
     "@quarry/analyzer": "workspace:*",
-    "@quarry/reporter": "workspace:*"
+    "@quarry/reporter": "workspace:*",
+    "@quarry/autonomy": "workspace:*"
   },
-  "devDependencies": { "typescript": "^5.6.0", "tsx": "^4.19.0" }
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0"
+  }
 }

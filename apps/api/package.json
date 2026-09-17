@@ -12,7 +12,8 @@
     "@quarry/db": "workspace:*",
     "@quarry/discovery": "workspace:*",
     "@quarry/reporter": "workspace:*",
-    "@quarry/feedback": "workspace:*"
+    "@quarry/feedback": "workspace:*",
+    "@quarry/autonomy": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

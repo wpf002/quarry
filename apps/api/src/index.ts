@@ -7,6 +7,7 @@ import {
   evaluate as evaluateMatch,
 } from '@quarry/core';
 import { recordOutcome, recomputeProgramScore } from '@quarry/feedback';
+import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal } from '@quarry/autonomy';
 
 const app = Fastify({ logger: true });
 
@@ -130,6 +131,45 @@ app.post('/programs/:id/approve-scan', async (req, reply) => {
     req.log.error(e);
     return reply.code(500).send({ error: 'approval failed' });
   }
+});
+
+// --- L2: ownership verification + standing authorizations -----------------
+app.post('/allowlist/:id/verify-ownership', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { by, method } = (req.body ?? {}) as { by?: string; method?: string };
+  if (!by) return reply.code(400).send({ error: 'by required' });
+  const entry = await prisma.allowlist.update({
+    where: { id },
+    data: { ownershipVerified: true, ownershipMethod: method ?? 'HUMAN_CONFIRMED' },
+  });
+  await audit({ actor: `human:${by}`, action: 'ownership.verify', programId: entry.programId, target: entry.pattern, detail: { allowlistId: id, method: entry.ownershipMethod } });
+  return { ok: true };
+});
+
+app.post('/programs/:id/preauth', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const b = (req.body ?? {}) as { signedBy?: string; days?: number; tiers?: number[]; maxTargetsPerDay?: number; rateLimitPerMin?: number; dailyBudgetUsd?: number };
+  if (!b.signedBy) return reply.code(400).send({ error: 'signedBy required' });
+  try {
+    const expiresAt = b.days ? new Date(Date.now() + b.days * 86_400_000) : undefined;
+    const res = await grantPreAuthorization(id, b.signedBy, {
+      expiresAt, tiers: b.tiers, maxTargetsPerDay: b.maxTargetsPerDay,
+      rateLimitPerMin: b.rateLimitPerMin, dailyBudgetUsd: b.dailyBudgetUsd,
+    });
+    return { ok: true, ...res };
+  } catch (e) {
+    if (e instanceof PreAuthRefusal) return reply.code(409).send({ error: e.message });
+    req.log.error(e);
+    return reply.code(500).send({ error: 'preauth failed' });
+  }
+});
+
+app.post('/preauth/:id/revoke', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const { by, reason } = (req.body ?? {}) as { by?: string; reason?: string };
+  if (!by) return reply.code(400).send({ error: 'by required' });
+  await revokePreAuthorization(id, reason ?? 'revoked by human', by);
+  return { ok: true };
 });
 
 // --- feedback: submission outcomes ---------------------------------------

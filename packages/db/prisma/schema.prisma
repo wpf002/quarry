@@ -80,6 +80,7 @@ model Program {
   assets    Asset[]
   allowlist Allowlist[]
   approvals ScanApproval[]
+  preauths  PreAuthorization[]
   findings  Finding[]
 
   createdAt DateTime @default(now())
@@ -109,14 +110,16 @@ model Asset {
 // Active scanning may touch a target ONLY if it matches a live Allowlist entry.
 // This is a whitelist, never a blacklist. No wildcards without an explicit flag.
 model Allowlist {
-  id            String  @id @default(cuid())
-  program       Program @relation(fields: [programId], references: [id])
-  programId     String
-  pattern       String // exact host/CIDR/url-prefix
-  allowWildcard Boolean @default(false)
-  addedBy       String // human identity, required
-  note          String?
-  active        Boolean @default(true)
+  id                String  @id @default(cuid())
+  program           Program @relation(fields: [programId], references: [id])
+  programId         String
+  pattern           String // exact host/CIDR/url-prefix
+  allowWildcard     Boolean @default(false)
+  addedBy           String // human identity, required
+  note              String?
+  active            Boolean @default(true)
+  ownershipVerified Boolean @default(false)
+  ownershipMethod   String?
 
   createdAt DateTime       @default(now())
   approvals ScanApproval[]
@@ -177,6 +180,26 @@ model Submission {
   resolvedAt  DateTime? // when the platform closed it
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+}
+
+// L2 standing authorization. A human signs this ONCE per program; the
+// autonomous scheduler may then run Tier-1/2 scans within its limits without
+// re-asking. It complements (never replaces) the per-target scan gate.
+model PreAuthorization {
+  id               String   @id @default(cuid())
+  program          Program  @relation(fields: [programId], references: [id])
+  programId        String
+  signedBy         String
+  tiers            Int[] // permitted tiers (1, 2). Tier 3 never here.
+  maxTargetsPerDay Int      @default(25)
+  rateLimitPerMin  Int      @default(20)
+  dailyBudgetUsd   Int      @default(5)
+  expiresAt        DateTime
+  revoked          Boolean  @default(false)
+  revokedReason    String?
+  createdAt        DateTime @default(now())
+
+  @@index([programId])
 }
 
 // Append-only trail. Every scope verdict and every active action lands here.

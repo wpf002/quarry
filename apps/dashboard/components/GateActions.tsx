@@ -10,6 +10,7 @@ type Entry = {
   active: boolean;
   note: string | null;
   addedBy: string;
+  ownershipVerified: boolean;
 };
 
 export function GateActions({
@@ -31,6 +32,7 @@ export function GateActions({
 
   const active = allowlist.filter((e) => e.active);
   const ready = flags.length === 0 && active.length > 0;
+  const allVerified = active.length > 0 && active.every((e) => e.ownershipVerified);
 
   const run = async (key: string, fn: () => Promise<any>, okMsg?: string) => {
     setBusy(key); setErr(null); setOk(null);
@@ -100,6 +102,16 @@ export function GateActions({
                     <td className="mono">{e.pattern}</td>
                     <td>{e.allowWildcard ? <span className="pill pill-warn">wildcard</span> : <span className="pill pill-muted">exact</span>}</td>
                     <td style={{ color: 'var(--faint)' }}>{e.note}</td>
+                    <td>
+                      {e.ownershipVerified ? (
+                        <span className="pill pill-accent">verified</span>
+                      ) : (
+                        <button className="btn btn-sm" disabled={busy != null}
+                          onClick={() => run('ver' + e.id, () => apiPost(`/allowlist/${e.id}/verify-ownership`, { by: who }))}>
+                          Verify
+                        </button>
+                      )}
+                    </td>
                     <td style={{ textAlign: 'right' }}>
                       <button className="btn btn-sm btn-ghost" disabled={busy != null}
                         onClick={() => run('del' + e.id, () => apiPost(`/programs/${programId}/allowlist/${e.id}/deactivate`, { by: who }))}>
@@ -160,6 +172,22 @@ export function GateActions({
         </button>
         {ok && <div style={{ color: 'var(--accent)', marginTop: 10, fontSize: 13 }}>{ok}</div>}
         {err && <div style={{ color: 'var(--danger)', marginTop: 10, fontSize: 13 }}>{err}</div>}
+      </div>
+
+      {/* L2 standing authorization */}
+      <div className="card" style={{ borderColor: allVerified && ready ? 'var(--accent-dim)' : 'var(--border)' }}>
+        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Standing authorization <span className="tag">L2</span></h3>
+        <div className="page-sub" style={{ marginBottom: 12 }}>
+          Sign once; the scheduler runs Tier 1/2 scans within limits without
+          re-asking. Requires every allowlist entry ownership-verified.
+        </div>
+        <button
+          className="btn btn-primary"
+          disabled={!ready || !allVerified || busy != null}
+          onClick={() => run('preauth', () => apiPost(`/programs/${programId}/preauth`, { signedBy: who }), 'Standing authorization signed.')}
+        >
+          {busy === 'preauth' ? 'Signing…' : allVerified && ready ? 'Sign standing authorization' : 'Verify every entry first'}
+        </button>
       </div>
     </div>
   );

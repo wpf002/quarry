@@ -15,6 +15,10 @@ the difference between hands-off and unaccountable.
 
 Today = **L0**. Everything below L0 is already built and passing tests.
 
+**Shipped:** L0, L1 (batch review inbox), L2 (standing authorizations with
+ownership-verified allowlists, budget/rate limits, and auto-revoking circuit
+breakers).
+
 ---
 
 ## Autonomy levels
