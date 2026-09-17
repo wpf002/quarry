@@ -1,6 +1,6 @@
 import { prisma } from '@quarry/db';
 import { audit } from '@quarry/core';
-import { runActiveScan, KillSwitchEngaged, type ScanProfile } from '@quarry/recon-active';
+import { runActiveScan, KillSwitchEngaged, InfiltrError, type ScanProfile } from '@quarry/recon-active';
 import { verifyProvenance, type CertFetcher } from './provenance.js';
 import { evaluateBreaker } from './breaker.js';
 import { livePreAuthorizations, revokePreAuthorization } from './preauth.js';
@@ -34,11 +34,11 @@ export interface AutoScanDeps {
 // runActiveScan -> assertActiveScanAllowed (the per-target gate). Any refusal,
 // rate breach, or budget breach trips the breaker and REVOKES the auth.
 export async function runAutoScans(deps: AutoScanDeps = {}): Promise<
-  Array<{ programId: string; scanned: number; revoked?: string }>
+  Array<{ programId: string; scanned: number; revoked?: string; deferred?: string }>
 > {
   const now = deps.now ?? new Date();
   const cost = deps.costPerScanUsd ?? 0;
-  const results: Array<{ programId: string; scanned: number; revoked?: string }> = [];
+  const results: Array<{ programId: string; scanned: number; revoked?: string; deferred?: string }> = [];
 
   for (const pre of await livePreAuthorizations(now)) {
     const allowlist = await prisma.allowlist.findMany({
@@ -73,7 +73,13 @@ export async function runAutoScans(deps: AutoScanDeps = {}): Promise<
           results.push({ programId: pre.programId, scanned, revoked: 'kill switch' });
           return results; // global halt
         }
-        oosHits++; // a gate refusal here means the auth's scope drifted
+        // Rate limit or timeout: back off and retry next tick. Do NOT trip the
+        // breaker -- this is not scope drift.
+        if (e instanceof InfiltrError && e.transient) {
+          results.push({ programId: pre.programId, scanned, deferred: e.message });
+          break;
+        }
+        oosHits++; // gate refusal / 403 scope rejection means the scope drifted
       }
 
       const verdict = evaluateBreaker(
