@@ -54,6 +54,11 @@ export async function discoverPrograms(
   return out;
 }
 
+/** True when a connector actually returned policy text worth re-parsing. */
+export function carriesPolicy(policyRaw: string | null | undefined): boolean {
+  return (policyRaw ?? '').trim().length > 0;
+}
+
 // Persist discovery output. Upserts Program rows and re-parses only when the
 // policy text actually changed (diff). Writes an AuditLog row per parse. This
 // NEVER flips `active` and NEVER marks an asset authoritatively in-scope.
@@ -70,6 +75,21 @@ export async function persistDiscovered(
         platform_handle: { platform: d.raw.platform, handle: d.raw.handle },
       },
     });
+
+    // A list-level poll carries no policy text. It must NEVER overwrite scope
+    // that enrichment already fetched, or discovery and enrichment fight each
+    // other every tick. Refresh only the cheap list fields.
+    if (existing && !carriesPolicy(d.raw.policyRaw)) {
+      await prisma.program.update({
+        where: { id: existing.id },
+        data: {
+          name: d.raw.name,
+          maxBountyUsd: d.raw.maxBountyUsd ?? existing.maxBountyUsd,
+        },
+      });
+      unchanged++;
+      continue;
+    }
 
     if (existing && existing.policyRaw === d.raw.policyRaw) {
       unchanged++;

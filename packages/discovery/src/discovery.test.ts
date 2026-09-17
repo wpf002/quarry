@@ -63,3 +63,12 @@ test('discoverPrograms survives a throwing connector', async () => {
   const out = await discoverPrograms([boom]);
   assert.deepEqual(out, []);
 });
+
+test('carriesPolicy: list-level polls (no policy text) must not trigger a re-parse', async () => {
+  const { carriesPolicy } = await import('./discovery.js');
+  assert.equal(carriesPolicy(''), false);
+  assert.equal(carriesPolicy('   '), false);
+  assert.equal(carriesPolicy(null), false);
+  assert.equal(carriesPolicy(undefined), false);
+  assert.equal(carriesPolicy('In scope: api.acme.com'), true);
+});
