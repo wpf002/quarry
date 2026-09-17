@@ -127,7 +127,7 @@ export function GateActions({
         {proposals.filter((p) => !active.some((e) => e.pattern === p)).length > 0 && (
           <div style={{ marginBottom: 12 }}>
             <div className="page-sub" style={{ marginBottom: 6 }}>
-              Parser proposed — confirm each you know is in scope:
+              Confirm each host you know is in scope:
             </div>
             <div className="chip-row">
               {proposals
