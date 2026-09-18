@@ -37,7 +37,11 @@ export default async function FindingDetail({ params }: { params: Promise<{ id: 
             <SeverityPill severity={finding.severity} />
             <span className="tag">{finding.program?.handle}</span>
             <ConfidenceBand value={finding.confidence} />
-            {finding.humanConfirmed ? <span className="pill pill-accent">Confirmed</span> : <span className="pill pill-muted">Needs review</span>}
+            {evidence.confirmed === true
+              ? <span className="pill pill-accent" title="Confirmed by Infiltr's differential harness — no triage needed">Harness-confirmed</span>
+              : finding.humanConfirmed
+                ? <span className="pill pill-accent">Confirmed</span>
+                : <span className="pill pill-muted">Needs review</span>}
           </div>
         </div>
       </div>

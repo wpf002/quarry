@@ -30,7 +30,7 @@ const PAYABLE_CLASSES = [
   'secret-exposure', 'sensitive-file-exposure', 'git-exposure', 'env-exposure', 'exposed-secret', 'exposed-api-key', 'exposed-key',
   'subdomain-takeover',
   'public-bucket', 'open-bucket', 's3-exposure',
-  'idor', 'bola', 'broken-access-control', 'access-control',
+  'idor', 'bola', 'broken-access-control', 'access-control', 'parameter-tampering',
   'auth-bypass', 'auth-weakness', 'broken-auth', 'account-takeover',
   'ssrf', 'sqli', 'sql-injection', 'rce', 'command-injection',
   'xss', 'stored-xss', 'reflected-xss', 'dom-xss',

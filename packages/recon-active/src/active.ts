@@ -122,18 +122,27 @@ async function persistActiveResult(
   }
   if (realFindings.length > 0) {
     await prisma.finding.createMany({
-      data: realFindings.map((f) => ({
-        programId,
-        scanRunId: run.id,
-        title: f.title,
-        vulnClass: f.vulnClass,
-        severity: f.severity,
-        // Trust Infiltr's confidence; it drives the report-ready gate (>= 0.8).
-        confidence: typeof f.confidence === 'number' ? f.confidence : 0.5,
-        dupRisk: 0.5,
-        evidence: f.evidence as object,
-        target: result.target,
-      })),
+      data: realFindings.map((f) => {
+        // A differential harness (idor/bac) that proved unauthorized access marks
+        // metadata.confirmed. Hoist it to evidence.confirmed + set humanConfirmed
+        // so it skips triage: the oracle confirmed it, a human only needs to submit.
+        const meta = (f.evidence as { metadata?: { confirmed?: unknown } })?.metadata;
+        const confirmed = meta?.confirmed === true;
+        const evidence = { ...(f.evidence as object), ...(confirmed ? { confirmed: true } : {}) };
+        return {
+          programId,
+          scanRunId: run.id,
+          title: f.title,
+          vulnClass: f.vulnClass,
+          severity: f.severity,
+          // Trust Infiltr's confidence; it drives the report-ready gate (>= 0.8).
+          confidence: typeof f.confidence === 'number' ? f.confidence : 0.5,
+          dupRisk: 0.5,
+          evidence,
+          target: result.target,
+          humanConfirmed: confirmed,
+        };
+      }),
     });
   }
   await audit({

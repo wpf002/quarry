@@ -29,7 +29,7 @@ const PAYABLE = new Set([
   'subdomain-takeover', 'secret-exposure', 'sensitive-file-exposure', 'git-exposure',
   'exposed-api-docs', 'exposed-api-key', 'cors-misconfiguration', 'open-redirect',
   'auth-bypass', 'ssti', 'xxe', 'lfi', 'deserialization', 'graphql-introspection',
-  'jwt-weakness', 'public-bucket',
+  'jwt-weakness', 'public-bucket', 'broken-access-control', 'parameter-tampering',
 ]);
 const NOISE = new Set([
   'missing-security-header', 'discovered-endpoint', 'tech-fingerprint', 'info-header',
@@ -113,7 +113,35 @@ function heuristic(f: FindingLike): FlintAnalysis {
   };
 }
 
+// A differential-harness finding (IDOR/BAC) already proved unauthorized access
+// with a machine-checkable oracle, so Flint doesn't re-triage it. It confirms
+// real-vs-noise instantly and hands off to the one human step that remains:
+// review the evidence and submit. This is the "human only at submit" path.
+function confirmed(f: FindingLike): FlintAnalysis {
+  return {
+    verdict: 'likely-real',
+    confidence: Math.max(0.9, f.confidence),
+    reasoning:
+      `${f.vulnClass} was confirmed by Infiltr's differential harness: it proved unauthorized ` +
+      `access by comparing responses across identities (attacker vs victim/anonymous). No triage needed.`,
+    exploitability: 'Confirmed by the oracle — the scan identity reached data it should not.',
+    nextSteps: [
+      'Review the captured evidence (request/response diff) to confirm scope and impact.',
+      'Submit the report. This is the only remaining human step.',
+    ],
+    reportDraft:
+      `# ${f.title}\n\n## Summary\n${f.vulnClass} on ${f.target ?? 'target'}, confirmed by differential testing ` +
+      `(the scan identity retrieved another party's protected resource).\n\n## Steps to reproduce\n` +
+      `1. Authenticate as the scan identity.\n2. Request the resource shown in the evidence.\n` +
+      `3. Observe you receive data belonging to another user / an unauthenticated request receives protected data.\n\n` +
+      `## Impact\nUnauthorized access to another user's data (broken authorization).\n\n## Evidence\n` +
+      `${JSON.stringify(f.evidence ?? {}, null, 2).slice(0, 1500)}`,
+    model: 'harness-confirmed (differential oracle)',
+  };
+}
+
 export async function analyzeFinding(f: FindingLike): Promise<FlintAnalysis> {
+  if ((f.evidence as { confirmed?: unknown } | null)?.confirmed === true) return confirmed(f);
   const key = process.env.ANTHROPIC_API_KEY;
   if (key) {
     const llm = await callClaude(f, key);
