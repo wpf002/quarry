@@ -100,20 +100,32 @@ export async function ensureSession(programId: string, force = false): Promise<R
   const c = await prisma.scanContext.findUnique({ where: { programId } });
   if (!c?.authLoginUrl || !c.authUsername) return undefined; // no auto-login configured
   const cached = (c.scanAuthHeaders ?? null) as Record<string, string> | null;
+  const hasCached = !!cached && Object.keys(cached).length > 0;
   const fresh = c.authCachedAt && Date.now() - new Date(c.authCachedAt).getTime() < SESSION_TTL_MS;
-  if (!force && cached && Object.keys(cached).length > 0 && fresh) return cached;
+  if (!force && hasCached && fresh) return cached!;
 
-  const headers = await performLogin({
-    loginUrl: c.authLoginUrl,
-    username: c.authUsername,
-    password: c.authPassword ?? '',
-    userField: c.authUserField ?? undefined,
-    passField: c.authPassField ?? undefined,
-    csrfField: c.authCsrfField ?? undefined,
-    tokenPath: c.authTokenPath ?? undefined,
-    json: c.authJson,
-    extra: (c.authExtraFields ?? undefined) as Record<string, string> | undefined,
-  });
+  let headers: Record<string, string>;
+  try {
+    headers = await performLogin({
+      loginUrl: c.authLoginUrl,
+      username: c.authUsername,
+      password: c.authPassword ?? '',
+      userField: c.authUserField ?? undefined,
+      passField: c.authPassField ?? undefined,
+      csrfField: c.authCsrfField ?? undefined,
+      tokenPath: c.authTokenPath ?? undefined,
+      json: c.authJson,
+      extra: (c.authExtraFields ?? undefined) as Record<string, string> | undefined,
+    });
+  } catch (e) {
+    // Re-login failed (stale password, endpoint changed, target down). If we still
+    // hold a cached session, use it — it may well be valid, and an expired token
+    // just yields 401s at scan time rather than blocking the scan outright. Don't
+    // bump authCachedAt, so the next scan retries the login. Only hard-fail when
+    // there's no cached session to fall back to.
+    if (hasCached) return cached!;
+    throw e;
+  }
   await prisma.scanContext.update({
     where: { programId },
     data: { scanAuthHeaders: headers, authCachedAt: new Date() },
