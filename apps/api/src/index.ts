@@ -209,10 +209,18 @@ async function loadScanContext(programId: string) {
   }
   const headers = (c.idorVictimHeaders ?? null) as Record<string, string> | null;
   if (headers && Object.keys(headers).length > 0) {
+    // Seed the IDOR sweep with the http endpoints we've already discovered for
+    // this program, so it fans the oracle across the known authenticated surface.
+    const assets = await prisma.asset.findMany({
+      where: { programId, value: { startsWith: 'http' } },
+      select: { value: true }, take: 200, orderBy: { createdAt: 'desc' },
+    });
+    const seeds = assets.map((a) => a.value);
     ctx.idor = {
       victim_headers: headers,
       ...(c.idorVictimId ? { victim_id: c.idorVictimId } : {}),
       ...(c.idorIdParam ? { id_param: c.idorIdParam } : {}),
+      ...(seeds.length > 0 ? { seeds } : {}),
     };
   }
   if (c.ssrfCanaryHost) {

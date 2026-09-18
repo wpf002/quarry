@@ -11,7 +11,7 @@ export interface ScanProfile {
 // Optional per-scan context for checks that need more than a URL. Passed
 // straight through to Infiltr. Only idor/ssrf keys are honored there.
 export interface InfiltrContext {
-  idor?: { victim_headers?: Record<string, string>; victim_id?: string; id_param?: string };
+  idor?: { victim_headers?: Record<string, string>; victim_id?: string; id_param?: string; seeds?: string[] };
   ssrf?: { canary_host?: string; wait?: number };
   /** Scan-wide session applied to every module (authenticated testing). */
   auth?: { headers?: Record<string, string> };
