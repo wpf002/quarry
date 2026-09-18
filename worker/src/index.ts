@@ -1,6 +1,6 @@
 // Autonomous loop. Everything scheduled here is unattended and passive-safe.
 // Active scanning is NOT scheduled here; it only runs from an approved gate.
-import { discoverPrograms, persistDiscovered, enrichAndPersist } from '@quarry/discovery';
+import { discoverPrograms, persistDiscovered, enrichAndPersist, monitorSubdomains } from '@quarry/discovery';
 import { runAutoScans, runAutoSubmit, selectTopPrograms, runAutopilot, liveCertFetcher } from '@quarry/autonomy';
 import { enumerateAssets, persistAssets } from '@quarry/recon-passive';
 import { reportReadyFindings } from '@quarry/analyzer';
@@ -61,6 +61,16 @@ async function tick() {
     // the allowlist for human sign-off.
     if ((process.env.QUARRY_AUTO_ONBOARD ?? '').toLowerCase() === 'on') {
       await autoOnboard();
+    }
+
+    // Continuous change-monitoring: CT-log subdomain discovery. Read-only public
+    // lookups; new hosts land as CT_LOG asset PROPOSALS for human verify — never
+    // auto-scanned. ON by default; set QUARRY_MONITOR=off to disable.
+    if ((process.env.QUARRY_MONITOR ?? 'on').toLowerCase() !== 'off') {
+      try {
+        const m = await monitorSubdomains({ limit: Number(process.env.MONITOR_LIMIT ?? 6) });
+        if (m.added > 0) console.log(`[monitor] +${m.added} new subdomain(s) across ${m.programs} program(s)`);
+      } catch (e) { console.error('[monitor] error', (e as Error).message); }
     }
 
     // Phase 2+ (passive recon, analyze, report) hang off the same loop as they

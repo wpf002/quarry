@@ -19,7 +19,7 @@ export default async function ProgramDetail({
         where: { id },
         include: {
           allowlist: { orderBy: { createdAt: 'desc' } },
-          assets: { orderBy: { createdAt: 'desc' }, take: 60 },
+          assets: { orderBy: { createdAt: 'desc' }, take: 200 },
           autoSubmit: true,
           scanContext: true,
         },
@@ -75,7 +75,13 @@ export default async function ProgramDetail({
         <GateActions
           programId={program.id}
           allowlist={program.allowlist as any}
-          proposals={(scope.inScope ?? []).filter((a) => !a.includes('*') && scannableHost(a))}
+          proposals={[
+            ...new Set([
+              ...(scope.inScope ?? []),
+              // monitored subdomains (CT_LOG) surface as proposals too
+              ...program.assets.filter((a: any) => a.source === 'CT_LOG').map((a: any) => a.value),
+            ]),
+          ].filter((a) => !a.includes('*') && scannableHost(a))}
         />
         <AutoSubmitPolicy programId={program.id} policy={program.autoSubmit as any} />
 

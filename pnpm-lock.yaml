@@ -26,6 +26,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@quarry/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@quarry/autonomy':
         specifier: workspace:*
         version: link:../../packages/autonomy

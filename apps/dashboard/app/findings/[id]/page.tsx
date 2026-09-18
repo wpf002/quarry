@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { safe } from '../../../lib/db';
 import { getFindingTrace } from '@quarry/analyzer';
 import { SeverityPill, ConfidenceBand } from '../../../components/ui';
+import { FlintPanel } from '../../../components/FlintPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,8 @@ export default async function FindingDetail({ params }: { params: Promise<{ id: 
       </div>
 
       <div className="grid" style={{ gap: 16 }}>
+        <FlintPanel findingId={finding.id} />
+
         <div className="card">
           <h3 style={{ fontSize: 15, marginBottom: 12 }}>Reproducible Trace</h3>
           {steps.length === 0 ? (

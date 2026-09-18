@@ -14,7 +14,8 @@
     "@quarry/reporter": "workspace:*",
     "@quarry/feedback": "workspace:*",
     "@quarry/autonomy": "workspace:*",
-    "@quarry/recon-active": "workspace:*"
+    "@quarry/recon-active": "workspace:*",
+    "@quarry/ai": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

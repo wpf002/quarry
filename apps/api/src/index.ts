@@ -11,6 +11,7 @@ import { runActiveScan, KillSwitchEngaged, InfiltrError } from '@quarry/recon-ac
 import { ScopeRefusal } from '@quarry/core';
 import { grantPreAuthorization, revokePreAuthorization, PreAuthRefusal, signCampaign, pauseCampaign, CampaignRefusal, liveVerify } from '@quarry/autonomy';
 import { ensureSession, LoginError } from './autologin.js';
+import { analyzeFinding } from '@quarry/ai';
 
 const app = Fastify({ logger: true });
 
@@ -329,6 +330,21 @@ app.post('/programs/:id/test-login', async (req, reply) => {
     req.log.error(e);
     return reply.code(500).send({ error: 'test login failed' });
   }
+});
+
+// --- Flint: LLM analysis copilot for a finding ----------------------------
+// Judges real-vs-noise, exploitability, next steps, and drafts a report. Uses
+// Claude when ANTHROPIC_API_KEY is set, else a structured heuristic. A human
+// confirms and submits — this never acts on its own.
+app.post('/findings/:id/analyze', async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const f = await prisma.finding.findUnique({ where: { id }, include: { program: { select: { handle: true } } } });
+  if (!f) return reply.code(404).send({ error: 'not found' });
+  const analysis = await analyzeFinding({
+    title: f.title, vulnClass: f.vulnClass, severity: f.severity, confidence: f.confidence,
+    target: f.target, program: f.program?.handle ?? null, evidence: (f.evidence ?? {}) as Record<string, unknown>,
+  });
+  return { ok: true, analysis };
 });
 
 // --- L3: auto-submit policy -----------------------------------------------
